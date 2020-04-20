@@ -310,6 +310,57 @@ void Octree::calc_node_num() {
   oct_info_.set_ptr_dis(); // !!! note: call this function to update the ptr
 }
 
+Eigen::MatrixXf Octree::calcRotationMatrix(Eigen::Vector3f norm1) {
+    Eigen::Vector3f norm2 = {0, 0, 1};
+    Eigen::Vector3f v = norm1.cross(norm2);
+    float s = sqrt(v.squaredNorm());
+    float c = norm1.dot(norm2);
+
+    Eigen::MatrixXf v_skew(3, 3);
+    v_skew <<   0, -v(2), v(1),
+                v(2), 0, -v(0),
+                -v(1), v(0), 0;
+
+    Eigen::MatrixXf R = Eigen::MatrixXf::Identity(3,3);
+    R += v_skew + v_skew*v_skew * ((1-c) / (s*s));
+    return R;
+}
+
+Eigen::MatrixXf Octree::bipoly_quadratic(float u, float v) {
+    Eigen::MatrixXf poly(6, 1);
+    poly << 1., u, v, u*u, u*v, v*v;
+    return poly;
+}
+
+Eigen::MatrixXf Octree::poly_approx(const vector<float>& pts_scaled, const vector<uint32>& sorted_idx, int jstart, int jend, Eigen::MatrixXf R, Eigen::Vector3f plane_center) {
+    Eigen::MatrixXf B = Eigen::MatrixXf::Zero(6,6);
+    Eigen::MatrixXf b = Eigen::MatrixXf::Zero(6,1);
+    Eigen::MatrixXf bf = Eigen::MatrixXf::Zero(6,1);
+    Eigen::MatrixXf p = Eigen::MatrixXf::Zero(3,1);
+
+    // todo : think if matrix notation is possible instead of for loop
+    float w;
+
+    for ( int j = jstart; j < jend; j++) {
+      // local coordinate system
+      p << pts_scaled[3*sorted_idx[j]], pts_scaled[3*sorted_idx[j] + 1], pts_scaled[3*sorted_idx[j] + 2];
+      p = p - plane_center;
+      w = p.norm(); // calculate distance - support radius is always scaled to 1
+      p = R * p;
+
+      // polynomial for each point
+      b = bipoly_quadratic(p(0, 0), p(1, 0));
+      w = 1.0f - (w*w);
+
+      B += (w*b) * b.transpose(); 
+      bf += w * b * p(2, 0);
+    }
+
+    Eigen::MatrixXf c(6,1);
+    c = B.inverse() * bf;
+    return c;
+}
+
 // compute the average signal for the last octree layer
 void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_scaled,
     const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx) {
@@ -348,6 +399,39 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
       }
       for (int c = 0; c < channel; ++c) {
         avg_normals_[depth][c * nnum + i] = avg_normal[c] / factor;
+      }
+
+      if (info().has_implicit()) {
+        int num_points = unique_idx[t+1] - unique_idx[t];
+        if (num_points >= 4) {
+          Eigen::Vector3f plane_center;
+
+          // TODO : node_pos throw segfault at this point ?!?!
+          uint32 pt[3] = { 0, 0, 0 };
+          compute_pt(pt, keys_[depth][i], depth);
+          plane_center << float(pt[0]) + 0.5, float(pt[1]) + 0.5, float(pt[2]) + 0.5;
+
+          Eigen::Vector3f plane_normal;
+          plane_normal << avg_normal[0], avg_normal[1], avg_normal[2];
+          plane_normal.normalize();
+          Eigen::MatrixXf R = calcRotationMatrix(plane_normal);
+          Eigen::MatrixXf coefs = poly_approx(pts_scaled, sorted_idx, unique_idx[t], unique_idx[t+1], R, plane_center);
+
+          float abs_sum = 0;
+          for (int c = 0; c < 6; c++) {
+            abs_sum += abs(coefs(c, 0));
+          }
+
+          // if good approximation
+          float threshold = 5;
+          bool use_any = false;
+          if ((coefs.maxCoeff() < threshold && coefs.minCoeff() > -threshold && abs_sum < threshold*2) || use_any) {
+            // store coefficients into the remainings space 3-9
+            for (int c = 0; c < 6; c++) {
+              avg_normals_[depth][(c+3) * nnum + i] = coefs(c, 0);
+            }
+          }
+        }
       }
     }
   }
