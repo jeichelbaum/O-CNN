@@ -17,6 +17,7 @@ void OctreeInfo::initialize(int depth, int full_depth, bool node_displacement,
   set_node_dis(node_displacement);
   set_key2xyz(key2xyz);
   set_extraplate(extrapolate);
+  set_implicit(true);
   set_save_points(save_pts);
   set_threshold_normal(threshold_normal);
   set_threshold_dist(threshold_distance);
@@ -46,6 +47,10 @@ void OctreeInfo::initialize(int depth, int full_depth, bool node_displacement,
   if (save_pts) {
     channel += 3; // save the average points as features
   }
+  if (has_implicit()) {
+    channel += 6;
+  }
+
   set_channel(OctreeInfo::kFeature, channel);
   // location = -1 means the features exist on every node
   int location = (node_feature || adaptive) ? -1 : depth;

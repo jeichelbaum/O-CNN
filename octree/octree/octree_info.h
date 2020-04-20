@@ -37,6 +37,7 @@ class OctreeInfo {
   float threshold_normal() const { return threshold_norm_; }
   bool is_adaptive() const { return is_adaptive_; }
   bool has_displace() const { return has_node_dis_; }
+  bool has_implicit() const { return has_implicit_; }
   int node_num(int d) const { return nnum_[d]; }
   int node_num_cum(int d) const { return nnum_cum_[d]; }
   int node_num_nempty(int d) const { return nnum_nempty_[d]; }
@@ -73,6 +74,7 @@ class OctreeInfo {
   void set_bbox(const float* bbmin, const float* bbmax);
   void set_key2xyz(bool b) { key2xyz_ = b; }
   void set_extraplate(bool b) { extrapolate_ = b; }
+  void set_implicit(bool b) { has_implicit_ = b; }
   void set_save_points(bool b) { save_pts_ = b; }
   void set_node_dis(bool dis) { has_node_dis_ = dis; }
   void set_adaptive(bool adp) { is_adaptive_ = adp; }
@@ -90,6 +92,7 @@ class OctreeInfo {
   int full_layer_;
   int adp_layer_;
   bool is_adaptive_;
+  bool has_implicit_;
   float threshold_dist_;
   float threshold_norm_;
   bool key2xyz_;

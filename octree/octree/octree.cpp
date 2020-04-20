@@ -322,7 +322,8 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
   const vector<int>& children = children_[depth];
   if (normals != nullptr) {
     const int channel = point_cloud.info().channel(PointsInfo::kNormal);
-    avg_normals_[depth].assign(channel * nnum, 0.0f);
+    const int offset = info().has_implicit() ? 6 : 0;
+    avg_normals_[depth].assign((channel+offset) * nnum, 0.0f);
 
     #pragma omp parallel for
     for (int i = 0; i < nnum; i++) {
@@ -1237,7 +1238,7 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
 
       float n[3], pt[3], pt_ref[3];
       node_normal(n, i, d);
-      float len = abs(n[0]) + abs(n[1]) + abs(n[2]);
+      float len = fabs(n[0]) + fabs(n[1]) + fabs(n[2]);
       if (len == 0) continue;
       node_pos(pt, i, d, pt_ref);
 
