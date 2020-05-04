@@ -120,3 +120,66 @@ void marching_cube_octree(vector<float>& V, vector<int>& F, const vector<float>&
   }
 }
 
+
+void marching_cube_octree_implicit(vector<float>& V, vector<int>& F, const vector<float>& pts,
+    const vector<float>& pts_ref, const vector<float>& normals, const vector<float>& coefs, const int n_subdivision) {
+  int num = pts.size() / 3;
+  V.clear(); F.clear();
+  for (int i = 0; i < num; ++i) {
+    // get point and normal
+    int ix3 = i * 3;
+    float pt[3], pt_ref[3], normal[3], c[6];
+    for (int j = 0; j < 3; ++j) {
+      pt_ref[j] = pts_ref[ix3 + j];       // global node start point
+      pt[j] = pts[ix3 + j] - pt_ref[j];   // plane center in local coordinates 
+      normal[j] = normals[ix3 + j];       // plane normal
+    }
+    for (int j = 0; j < 6; ++j) { c[j] = coefs[i*6 + j]; }  // slim coefficients
+
+    Eigen::Vector3f plane_center(pt[0], pt[1], pt[2]);
+    Eigen::Vector3f plane_normal(normal[0], normal[1], normal[2]);
+    Eigen::MatrixXf R = polynomial::calc_rotation_matrix(plane_normal);
+    Eigen::MatrixXf coef(6,1);
+    coef << c[0],c[1],c[2],c[3],c[4],c[5]; 
+
+    auto coefs3 = polynomial::biquad2triquad(plane_center, R, coef, 1);
+
+    float pt_ref_sub[3] = {0};
+    float step = 1.0 / float(n_subdivision);
+
+    Eigen::Vector3f ray_dir = {1, 0, 0};
+
+    // compute function value for corners
+    for (int x = 0; x < n_subdivision; x++) {
+        pt_ref_sub[0] = x * step;
+        for (int y = 0; y < n_subdivision; y++) {
+            pt_ref_sub[1] = y * step;
+            for (int z = 0; z < n_subdivision; z++) {
+                pt_ref_sub[2] = z * step;
+
+                Eigen::Vector3f p;
+                float fval[8] = {0};
+                for (int k = 0; k < 8; ++k) {
+                    for (int j = 0; j < 3; ++j) {
+                        p(j) = MarchingCube::corner_[k][j] * step + pt_ref_sub[j];
+                    }
+
+                    // calcualate function value
+                    fval[k] = polynomial::fval_triquad(p, plane_center, coefs3);
+                }
+
+                // marching cube
+                int vid = V.size() / 3;
+                float ref[3] = {0,0,0};
+                MarchingCube mcube(fval, 0, ref, vid);
+                mcube.contouring(V, F);
+                for (int i = vid; i < V.size() / 3; i++) {
+                    for (int c = 0; c < 3; c++) { V[i*3+c] = V[i*3+c]*step + pt_ref_sub[c] + pt_ref[c]; }
+                }
+            }   
+        }   
+    }
+
+
+  }
+}

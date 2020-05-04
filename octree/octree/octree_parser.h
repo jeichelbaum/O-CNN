@@ -67,6 +67,7 @@ class OctreeParser {
   //////////////////////////////////////
   void node_pos(float* xyz, int id, int depth, float* xyz_base = nullptr) const;
   void node_normal(float* n, int id, int depth) const;
+  void node_slim_coefficients(float* coefs, int id, int depth) const;
   float node_dis(int id, int depth) const;
   template<typename Dtype>
   void key2xyz(Dtype* xyz, const uint32& key, const int depth) const;

@@ -310,57 +310,6 @@ void Octree::calc_node_num() {
   oct_info_.set_ptr_dis(); // !!! note: call this function to update the ptr
 }
 
-Eigen::MatrixXf Octree::calcRotationMatrix(Eigen::Vector3f norm1) {
-    Eigen::Vector3f norm2 = {0, 0, 1};
-    Eigen::Vector3f v = norm1.cross(norm2);
-    float s = sqrt(v.squaredNorm());
-    float c = norm1.dot(norm2);
-
-    Eigen::MatrixXf v_skew(3, 3);
-    v_skew <<   0, -v(2), v(1),
-                v(2), 0, -v(0),
-                -v(1), v(0), 0;
-
-    Eigen::MatrixXf R = Eigen::MatrixXf::Identity(3,3);
-    R += v_skew + v_skew*v_skew * ((1-c) / (s*s));
-    return R;
-}
-
-Eigen::MatrixXf Octree::bipoly_quadratic(float u, float v) {
-    Eigen::MatrixXf poly(6, 1);
-    poly << 1., u, v, u*u, u*v, v*v;
-    return poly;
-}
-
-Eigen::MatrixXf Octree::poly_approx(const vector<float>& pts_scaled, const vector<uint32>& sorted_idx, int jstart, int jend, Eigen::MatrixXf R, Eigen::Vector3f plane_center) {
-    Eigen::MatrixXf B = Eigen::MatrixXf::Zero(6,6);
-    Eigen::MatrixXf b = Eigen::MatrixXf::Zero(6,1);
-    Eigen::MatrixXf bf = Eigen::MatrixXf::Zero(6,1);
-    Eigen::MatrixXf p = Eigen::MatrixXf::Zero(3,1);
-
-    // todo : think if matrix notation is possible instead of for loop
-    float w;
-
-    for ( int j = jstart; j < jend; j++) {
-      // local coordinate system
-      p << pts_scaled[3*sorted_idx[j]], pts_scaled[3*sorted_idx[j] + 1], pts_scaled[3*sorted_idx[j] + 2];
-      p = p - plane_center;
-      w = p.norm(); // calculate distance - support radius is always scaled to 1
-      p = R * p;
-
-      // polynomial for each point
-      b = bipoly_quadratic(p(0, 0), p(1, 0));
-      w = 1.0f - (w*w);
-
-      B += (w*b) * b.transpose(); 
-      bf += w * b * p(2, 0);
-    }
-
-    Eigen::MatrixXf c(6,1);
-    c = B.inverse() * bf;
-    return c;
-}
-
 // compute the average signal for the last octree layer
 void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_scaled,
     const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx) {
@@ -414,8 +363,8 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
           Eigen::Vector3f plane_normal;
           plane_normal << avg_normal[0], avg_normal[1], avg_normal[2];
           plane_normal.normalize();
-          Eigen::MatrixXf R = calcRotationMatrix(plane_normal);
-          Eigen::MatrixXf coefs = poly_approx(pts_scaled, sorted_idx, unique_idx[t], unique_idx[t+1], R, plane_center);
+          Eigen::MatrixXf R = polynomial::calc_rotation_matrix(plane_normal);
+          Eigen::MatrixXf coefs = polynomial::biquad_approximation(pts_scaled, sorted_idx, unique_idx[t], unique_idx[t+1], R, plane_center);
 
           float abs_sum = 0;
           for (int c = 0; c < 6; c++) {
@@ -1309,19 +1258,20 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
   const float* bbmin = info_->bbmin();
   const float kMul = info_->bbox_max_width() / float(1 << depth);
   valid_depth_range(depth_start, depth_end);
-
+  
   V.clear(); F.clear();
   for (int d = depth_start; d <= depth_end; ++d) {
     const int* child_d = children_cpu(d);
     const int num = info_->node_num(d);
     const float scale = (1 << (depth - d)) * kMul;
 
-    vector<float> pts, normals, pts_ref;
+    vector<float> pts, normals, pts_ref, coefs;
     for (int i = 0; i < num; ++i) {
       if (node_type(child_d[i]) == kInternelNode && d != depth) continue;
 
-      float n[3], pt[3], pt_ref[3];
+      float n[3], pt[3], pt_ref[3], coef[6];
       node_normal(n, i, d);
+      node_slim_coefficients(coef, i, d);
       float len = fabs(n[0]) + fabs(n[1]) + fabs(n[2]);
       if (len == 0) continue;
       node_pos(pt, i, d, pt_ref);
@@ -1331,12 +1281,20 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
         pts.push_back(pt[c]);
         pts_ref.push_back(pt_ref[c]);
       }
+
+      for (int c = 0; c < 6; ++c) {
+        coefs.push_back(coef[c]);
+      }
     }
 
     // run marching cube
     vector<float> vtx;
     vector<int> face;
-    marching_cube_octree(vtx, face, pts, pts_ref, normals);
+    if (info_->channel(OctreeInfo::kFeature) <= 3) {
+      marching_cube_octree(vtx, face, pts, pts_ref, normals);
+    } else {
+      marching_cube_octree_implicit(vtx, face, pts, pts_ref, normals, coefs, 5);
+    }
 
     // concate
     int nv = V.size() / 3;

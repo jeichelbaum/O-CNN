@@ -1,6 +1,6 @@
 SOLVER:
   gpu: 0,
-  logdir: logs/ae/0322_ocnn
+  logdir: logs/ae/aocnn3_slim2
   run: train
   max_iter: 320000
   test_iter: 248
@@ -10,23 +10,23 @@ SOLVER:
 DATA:
   train:
     dtype: octree
-    depth: 6
-    location: dataset/completion_train_octree_6_lmdb_new.tfrecord 
+    depth: 3
+    location: dataset/m40_3_2_12_train_octree.tfrecords 
     batch_size: 16
-    x_alias: octree # be careful with this parameter
+    x_alias: data # be careful with this parameter
   test: 
     dtype: octree
-    depth: 6
-    location: dataset/completion_test_octree_6_lmdb_new.tfrecord
+    depth: 3
+    location: dataset/m40_3_2_12_test_octree.tfrecords 
     shuffle: 0
     batch_size: 16
-    x_alias: octree # be careful with this parameter
+    x_alias: data # be careful with this parameter
 
 MODEL:
   name: ocnn
-  channel: 4
+  channel: 10
   nout: 128   # the hidden code
-  depth: 6
+  depth: 3
 
 LOSS:
   num_class: 40

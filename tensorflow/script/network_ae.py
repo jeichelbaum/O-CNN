@@ -99,7 +99,7 @@ def octree_decode_shape(code, flags, training, reuse=False):
       else:
         with tf.variable_scope('regress_%d' % d):
           signal = predict_signal(data, flags.channel, 32, training)
-          signal = normalize_signal(signal)
+          #signal = normalize_signal(signal)
           signal = octree_mask(signal, label, mask=0)
         with tf.variable_scope('octree_%d' % d, reuse=True):
           octree = octree_set_property(octree, signal, property_name="feature", depth=depth)

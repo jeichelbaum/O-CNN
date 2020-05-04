@@ -104,7 +104,7 @@ void OctreeParser::node_pos(float* xyz, int id, int depth, float* xyz_base) cons
   for (int c = 0; c < 3; ++c) {
     xyz[c] += 0.5f;
   }
-  if (info_->has_displace()) {
+  if (info_->has_displace() && info_->channel(OctreeInfo::kFeature) <= 4) {
     const float kDis = 0.8660254f; // = sqrt(3.0f) / 2.0f
     float dis = node_dis(id, depth) * kDis; // !!! Note kDis
     if (dis == 0) return;
@@ -125,6 +125,18 @@ void OctreeParser::node_normal(float* n, int id, int depth) const {
     for (int c = 0; c < 3; ++c) { n[c] = feature_d[c * num + id]; }
   } else {
     for (int c = 0; c < 3; ++c) { n[c] = 0; }
+  }
+}
+
+void OctreeParser::node_slim_coefficients(float* coefs, int id, int depth) const {
+  int num = info_->node_num(depth);
+  const float* feature_d = feature_cpu(depth);
+  int loc = info_->locations(OctreeInfo::kFeature);
+  int ch = info_->channel(OctreeInfo::kFeature);
+  if ((loc == -1 || loc == depth) && ch >= 3) {
+    for (int c = 0; c < 6; ++c) { coefs[c] = feature_d[(c+3) * num + id]; }
+  } else {
+    for (int c = 0; c < 6; ++c) { coefs[c] = 0; }
   }
 }
 

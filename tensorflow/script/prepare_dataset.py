@@ -115,7 +115,7 @@ def m40_convert_points_to_octree(root_folder, depth=5, adaptive=0, node_dis=0):
       if adaptive == 1: octree_folder = octree_folder + '.adaptive'
       output_path = os.path.join(octree_folder, folder, subfolder)
       if not os.path.exists(output_path): os.makedirs(output_path)
-      cmd = '%s --filenames %s --output_path %s --depth %d --adaptive %d --node_dis %d --axis z' % \
+      cmd = '%s --filenames %s --output_path %s --depth %d --adaptive %d --node_dis %d --axis z --split_label 1' % \
             (octree, filelist_name, output_path, depth, adaptive, node_dis)
       print(cmd)
       os.system(cmd)
@@ -212,14 +212,14 @@ def m40_generate_ocnn_points_tfrecords():
     os.system(cmd)
 
 
-def m40_generate_ocnn_octree_tfrecords(depth=5):
+def m40_generate_ocnn_octree_tfrecords(depth=3):
   # generate octree
   root_folder =  os.path.join(abs_path, 'dataset')
   points_folder = os.path.join(root_folder, 'ModelNet40.points')
-  m40_convert_points_to_octree(points_folder, depth, adaptive=0, node_dis=0)
+  m40_convert_points_to_octree(points_folder, depth, adaptive=1, node_dis=1)
 
   # generate tfrecords
-  octree_folder = os.path.join(root_folder, 'ModelNet40.octree.%d' % depth)
+  octree_folder = os.path.join(root_folder, 'ModelNet40.octree.%d.adaptive' % depth)
   for folder in ['train', 'test']:
     train = folder == 'train'
     shuffle = '--shuffle true' if folder == 'train' else ''

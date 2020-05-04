@@ -7,6 +7,7 @@
 #include "points.h"
 #include "octree_info.h"
 #include "octree_parser.h"
+#include "polynomial.h"
 
 #include "eigen3/Eigen/Dense"
 
@@ -59,11 +60,7 @@ class Octree : public OctreeParser {
 
   void covered_depth_nodes();
   void valid_depth_range(int& depth_start, int& depth_end) const;
-
-  Eigen::MatrixXf calcRotationMatrix(Eigen::Vector3f norm1);
-  Eigen::MatrixXf bipoly_quadratic(float u, float v);
-  Eigen::MatrixXf poly_approx(const vector<float>& pts_scaled, const vector<uint32>& sorted_idx, int jstart, int jend, Eigen::MatrixXf R, Eigen::Vector3f plane_center);
-
+  
  protected:
   // the octree is serialized into buffer_
   vector<char> buffer_;
