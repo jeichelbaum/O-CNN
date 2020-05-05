@@ -104,6 +104,9 @@ void OctreeParser::node_pos(float* xyz, int id, int depth, float* xyz_base) cons
   for (int c = 0; c < 3; ++c) {
     xyz[c] += 0.5f;
   }
+
+  // displacement wont be during implicit calculation for now, because first calculate normal + implicits, then displacement
+  // therefore implicit surfaces originate at cube center
   if (info_->has_displace() && info_->channel(OctreeInfo::kFeature) <= 4) {
     const float kDis = 0.8660254f; // = sqrt(3.0f) / 2.0f
     float dis = node_dis(id, depth) * kDis; // !!! Note kDis

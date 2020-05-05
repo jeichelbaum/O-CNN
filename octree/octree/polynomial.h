@@ -22,7 +22,7 @@ class polynomial {
   static MatrixXf triquad(Vector3f p);
 
   static MatrixXf biquad_approximation(const vector<float>& pts_scaled, const vector<OctreeParser::uint32>& sorted_idx, 
-    int jstart, int jend, MatrixXf R, Vector3f plane_center);
+    int jstart, int jend, MatrixXf R, Vector3f plane_center, float support_radius);
 
   static float fval_biquad(float u, float v, MatrixXf c);
   static float fval_triquad(Vector3f p, Vector3f plane_center, MatrixXf c);

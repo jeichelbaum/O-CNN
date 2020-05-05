@@ -80,7 +80,13 @@ void Octree::build(const OctreeInfo& octree_info, const Points& point_cloud) {
   vector<float> pts_scaled;
   normalize_pts(pts_scaled, point_cloud);
   vector<uint32> node_keys, sorted_idx;
-  sort_keys(node_keys, sorted_idx, pts_scaled);
+
+  if (overlap_amount() == 0) {
+    sort_keys(node_keys, sorted_idx, pts_scaled);
+  } else {
+    sort_keys_overlap(node_keys, sorted_idx, pts_scaled, overlap_amount());
+  }
+
   vector<uint32> unique_idx;
   unique_key(node_keys, unique_idx);
 
@@ -172,26 +178,28 @@ void Octree::sort_keys(vector<uint32>& sorted_keys, vector<uint32>& sorted_idx,
     const vector<float>& pts_scaled) {
 
   // compute the code
-  int depth_ = oct_info_.depth();
-  int npt = pts_scaled.size() / 3;
+  int depth_ = oct_info_.depth(); // max depth
+  int npt = pts_scaled.size() / 3; // number of points
   vector<uint64> code(npt);
   #pragma omp parallel for
   for (int i = 0; i < npt; i++) {
     // compute key
     uint32 pt[3], key;
     for (int j = 0; j < 3; ++j) {
-      pt[j] = static_cast<uint32>(pts_scaled[3 * i + j]);
+      pt[j] = static_cast<uint32>(pts_scaled[3 * i + j]); // scaled points equal to flooring xyz into pt[]
+      // 0,1,2 | 2,3,4 | 4,5,6 overwrite on every second write
     }
     compute_key(key, pt, depth_);
 
     // generate code
     uint32* ptr = reinterpret_cast<uint32*>(&code[i]);
-    ptr[0] = i;
-    ptr[1] = key;
+    ptr[0] = i; // code 0-32bits = point index
+    ptr[1] = key; // code 32-64bits = generated key
+    
   }
 
   // sort all the code
-  std::sort(code.begin(), code.end());
+  std::sort(code.begin(), code.end()); // will be sorted by generated key
 
   // unpack the code
   sorted_keys.resize(npt);
@@ -199,8 +207,81 @@ void Octree::sort_keys(vector<uint32>& sorted_keys, vector<uint32>& sorted_idx,
   #pragma omp parallel for
   for (int i = 0; i < npt; i++) {
     uint32* ptr = reinterpret_cast<uint32*>(&code[i]);
-    sorted_idx[i] = ptr[0];
-    sorted_keys[i] = ptr[1];
+    sorted_idx[i] = ptr[0]; // split code into index
+    sorted_keys[i] = ptr[1]; // and key
+  }
+}
+
+void Octree::sort_keys_overlap(vector<uint32>& sorted_keys, vector<uint32>& sorted_idx,
+    const vector<float>& pts_scaled, float overlap) {
+
+  int depth_ = oct_info_.depth(); // max depth
+  int npt = pts_scaled.size() / 3; // number of points
+  int num_codes = 0;
+  float max_idx = std::pow(2, depth_) - 1.0f;
+
+  // maximum number of cells per point allowed = 27 -> max overlap = 1.0
+  vector<uint64> code(npt*27);
+  #pragma omp parallel for
+  for (int i = 0; i < npt; i++) {
+
+    // shift point along xyz -> 27 combinations
+    vector<uint32> new_keys, new_idx;
+    float shift[3] = {0,0,0};
+    for (int x = -1; x <= 1; x++) {
+      shift[0] = float(x) * overlap;
+      for (int y = -1; y <= 1; y++) {
+        shift[1] = float(y) * overlap;
+        for (int z = -1; z <= 1; z++) {
+          shift[2] = float(z) * overlap;
+
+          // compute key across xyz channel
+          uint32 pt[3], key;
+          for (int j = 0; j < 3; ++j) {
+            // scaled points equal to flooring xyz into pt[]
+            pt[j] = static_cast<uint32>(std::min(max_idx, std::max(0.0f, pts_scaled[3 * i + j] + shift[j]))); 
+          }
+          compute_key(key, pt, depth_);
+
+          // check if shifted point results in new key
+          bool unique = true;
+          for (int j = 0; j < new_keys.size(); j++) {
+            if (new_keys[j] == key) { 
+              unique = false;
+              break;
+            }
+          }
+
+          // add if node key is unique among shifted points
+          if (unique){
+            new_idx.push_back(i);
+            new_keys.push_back(key);
+          }
+        }
+      }
+    }
+
+    // add shifted point indices to global code
+    for (int j = 0; j < new_keys.size(); j++) {
+      uint32* ptr = reinterpret_cast<uint32*>(&code[num_codes]);
+      ptr[0] = new_idx[j]; // code 0-32bits = point index
+      ptr[1] = new_keys[j]; // code 32-64bits = generated key*/
+      num_codes++;
+    }
+  }
+  code.resize(num_codes);
+
+  // sort all the code
+  std::sort(code.begin(), code.end()); // will be sorted by generated key
+
+  // unpack the code
+  sorted_keys.resize(num_codes);
+  sorted_idx.resize(num_codes);
+  #pragma omp parallel for
+  for (int i = 0; i < num_codes; i++) {
+    uint32* ptr = reinterpret_cast<uint32*>(&code[i]);
+    sorted_idx[i] = ptr[0]; // split code into index
+    sorted_keys[i] = ptr[1]; // and key
   }
 }
 
@@ -319,6 +400,8 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
   const float* labels = point_cloud.ptr(PointsInfo::kLabel);
   const int nnum = oct_info_.node_num(depth);
 
+  float support_radius = std::sqrt(3*std::pow(0.5+overlap_amount(), 2.0));
+
   const vector<int>& children = children_[depth];
   if (normals != nullptr) {
     const int channel = point_cloud.info().channel(PointsInfo::kNormal);
@@ -364,7 +447,7 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
           plane_normal << avg_normal[0], avg_normal[1], avg_normal[2];
           plane_normal.normalize();
           Eigen::MatrixXf R = polynomial::calc_rotation_matrix(plane_normal);
-          Eigen::MatrixXf coefs = polynomial::biquad_approximation(pts_scaled, sorted_idx, unique_idx[t], unique_idx[t+1], R, plane_center);
+          Eigen::MatrixXf coefs = polynomial::biquad_approximation(pts_scaled, sorted_idx, unique_idx[t], unique_idx[t+1], R, plane_center, support_radius);
 
           float abs_sum = 0;
           for (int c = 0; c < 6; c++) {
@@ -913,8 +996,8 @@ void Octree::unique_key(vector<uint32>& keys, vector<uint32>& idx) {
 
   int n = keys.size(), j = 1;
   for (int i = 1; i < n; i++) {
-    if (keys[i] != keys[i - 1]) {
-      idx.push_back(i);
+    if (keys[i] != keys[i - 1]) { // only push back if current key != last key, unique because sorted
+      idx.push_back(i); // why push idx back?
       keys[j++] = keys[i];
     }
   }

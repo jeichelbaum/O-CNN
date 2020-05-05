@@ -33,7 +33,7 @@ MatrixXf polynomial::triquad(Vector3f p) {
 }
 
 MatrixXf polynomial::biquad_approximation(const vector<float>& pts_scaled, const vector<OctreeParser::uint32>& sorted_idx,
-    int jstart, int jend, MatrixXf R, Vector3f plane_center) {
+    int jstart, int jend, MatrixXf R, Vector3f plane_center, float support_radius) {
 
     MatrixXf B = MatrixXf::Zero(6,6);
     MatrixXf b = MatrixXf::Zero(6,1);
@@ -47,7 +47,7 @@ MatrixXf polynomial::biquad_approximation(const vector<float>& pts_scaled, const
       // local coordinate system
       p << pts_scaled[3*sorted_idx[j]], pts_scaled[3*sorted_idx[j] + 1], pts_scaled[3*sorted_idx[j] + 2];
       p = p - plane_center;
-      w = p.norm(); // calculate distance - support radius is always scaled to 1
+      w = p.norm() / support_radius; // calculate distance - support radius is always 1.0 unless there is overlap then equal radius
       p = R * p;
 
       // polynomial for each point

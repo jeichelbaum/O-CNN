@@ -42,6 +42,8 @@ class Octree : public OctreeParser {
   void normalize_pts(vector<float>& pts_scaled, const Points& pts);
   void sort_keys(vector<uint32>& sorted_keys, vector<uint32>& sorted_idx,
       const vector<float>& pts_scaled);
+  void sort_keys_overlap(vector<uint32>& sorted_keys, vector<uint32>& sorted_idx,
+      const vector<float>& pts_scaled, float overlap);
   void unique_key(vector<uint32>& node_key, vector<uint32>& pidx);
 
   void build_structure(vector<uint32>& node_keys);
@@ -60,6 +62,8 @@ class Octree : public OctreeParser {
 
   void covered_depth_nodes();
   void valid_depth_range(int& depth_start, int& depth_end) const;
+
+  float overlap_amount() { return 0.0; };
   
  protected:
   // the octree is serialized into buffer_
