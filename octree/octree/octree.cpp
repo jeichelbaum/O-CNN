@@ -432,39 +432,6 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
       for (int c = 0; c < channel; ++c) {
         avg_normals_[depth][c * nnum + i] = avg_normal[c] / factor;
       }
-
-      if (info().has_implicit()) {
-        int num_points = unique_idx[t+1] - unique_idx[t];
-        if (num_points >= 4) {
-          Eigen::Vector3f plane_center;
-
-          // TODO : node_pos throw segfault at this point ?!?!
-          uint32 pt[3] = { 0, 0, 0 };
-          compute_pt(pt, keys_[depth][i], depth);
-          plane_center << float(pt[0]) + 0.5, float(pt[1]) + 0.5, float(pt[2]) + 0.5;
-
-          Eigen::Vector3f plane_normal;
-          plane_normal << avg_normal[0], avg_normal[1], avg_normal[2];
-          plane_normal.normalize();
-          Eigen::MatrixXf R = polynomial::calc_rotation_matrix(plane_normal);
-          Eigen::MatrixXf coefs = polynomial::biquad_approximation(pts_scaled, sorted_idx, unique_idx[t], unique_idx[t+1], R, plane_center, support_radius);
-
-          float abs_sum = 0;
-          for (int c = 0; c < 6; c++) {
-            abs_sum += abs(coefs(c, 0));
-          }
-
-          // if good approximation
-          float threshold = 5;
-          bool use_any = false;
-          if ((coefs.maxCoeff() < threshold && coefs.minCoeff() > -threshold && abs_sum < threshold*2) || use_any) {
-            // store coefficients into the remainings space 3-9
-            for (int c = 0; c < 6; c++) {
-              avg_normals_[depth][(c+3) * nnum + i] = coefs(c, 0);
-            }
-          }
-        }
-      }
     }
   }
 
@@ -560,6 +527,56 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
           displacement[c * nnum + i] = dis[c];
         }
         displacement[3 * nnum + i] = dis[3] * mul; // !!! note the *mul* !!!
+      }
+    }
+  }
+
+  if (oct_info_.has_implicit()) {
+    vector<float>& displacement = displacement_[depth];
+
+    #pragma omp parallel for
+    for (int i = 0; i < nnum; i++) {
+      int t = children[i];
+      if (node_type(t) == kLeaf) continue;
+
+      // only approximate if enough points in support radius
+      int num_points = unique_idx[t+1] - unique_idx[t];
+      if (num_points >= 4) {
+
+        // calc uv-plane center
+        uint32 pt[3] = { 0, 0, 0 };
+        compute_pt(pt, keys_[depth][i], depth);
+        Eigen::Vector3f plane_center;
+        plane_center << float(pt[0]) + .5, float(pt[1]) + .5, float(pt[2]) + .5;
+        float d = displacement[i] * 0.8660254f; 
+        for (int c = 0; c < 3; c++) {
+          plane_center(c) += (d * avg_normals_[depth][c * nnum + i]);
+        }
+
+        // get uv-plane normal 
+        Eigen::Vector3f plane_normal;
+        plane_normal << avg_normals_[depth][i], avg_normals_[depth][1 * nnum + i], avg_normals_[depth][2 * nnum + i];
+        plane_normal.normalize();
+        Eigen::MatrixXf R = polynomial::calc_rotation_matrix(plane_normal);
+
+        // approximate surface         
+        Eigen::MatrixXf coefs = polynomial::biquad_approximation(pts_scaled, sorted_idx, unique_idx[t], unique_idx[t+1], R, plane_center, support_radius);
+
+        // calc coefficient sum as measure of good approximation
+        float abs_sum = 0;
+        for (int c = 0; c < 6; c++) {
+          abs_sum += abs(coefs(c, 0));
+        }
+
+        // if good approximation
+        float threshold = 5;
+        bool use_any = false;
+        if ((coefs.maxCoeff() < threshold && coefs.minCoeff() > -threshold && abs_sum < threshold*2) || use_any) {
+          // store coefficients into the remainings space 3-9
+          for (int c = 0; c < 6; c++) {
+            avg_normals_[depth][(c+3) * nnum + i] = coefs(c, 0);
+          }
+        }
       }
     }
   }
