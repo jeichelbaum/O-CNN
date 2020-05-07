@@ -26,13 +26,14 @@ DEFINE_bool(node_dis, kOptional, false, "Output per-node displacement");
 DEFINE_bool(node_feature, kOptional, false, "Compute per node feature");
 DEFINE_bool(split_label, kOptional, false, "Compute per node splitting label");
 DEFINE_bool(adaptive, kOptional, false, "Build adaptive octree");
-DEFINE_int(adp_depth, kOptional, 4, "The starting depth of adaptive octree");
+DEFINE_int(adp_depth, kOptional, 3, "The starting depth of adaptive octree");
 DEFINE_float(th_distance, kOptional, 2.0f, "The threshold for simplifying octree");
 DEFINE_float(th_normal, kOptional, 0.1f, "The threshold for simplifying octree");
 DEFINE_bool(key2xyz, kOptional, false, "Convert the key to xyz when serialization");
 DEFINE_bool(extrapolate, kOptional, false, "Exptrpolate the node feature");
 DEFINE_bool(save_pts, kOptional, false, "Save the average points as signal");
 DEFINE_bool(verbose, kOptional, true, "Output logs");
+DEFINE_bool(implicit, kOptional, true, "Implicit Surface approximation");
 
 
 // OctreeBuilder shows a basic example for building an octree with a point cloud
@@ -80,7 +81,7 @@ class OctreeBuilder {
     octree_info_.initialize(FLAGS_depth, FLAGS_full_depth, FLAGS_node_dis,
         FLAGS_node_feature, FLAGS_split_label, FLAGS_adaptive, FLAGS_adp_depth,
         FLAGS_th_distance, FLAGS_th_normal, FLAGS_key2xyz, FLAGS_extrapolate,
-        FLAGS_save_pts, point_cloud_);
+        FLAGS_save_pts, FLAGS_implicit, point_cloud_);
 
     // the point cloud has been centralized,
     // so initializing the bbmin & bbmax in the following way

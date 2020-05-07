@@ -1,17 +1,17 @@
 SOLVER:
   gpu: 0,
   logdir: ../../../implicit_ocnn/ae_mesh/
-  ckpt: logs/ae/aocnn3_slim2/model/iter_320000.ckpt
+  ckpt: logs/ae/aocnn4_slim2/model/iter_320000.ckpt
   run: decode_shape
   max_iter: 320000
-  test_iter: 100
+  test_iter: 2000
 
 DATA:
   test: 
     dtype: octree
-    depth: 3
-    location: dataset/m40_3_2_12_test_octree.tfrecords
-    shuffle: 1
+    depth: 4
+    location: dataset/m40_4_2_12_test_octree.tfrecords
+    shuffle: 0
     batch_size: 1
     x_alias: data # be careful with this parameter
 
@@ -19,7 +19,7 @@ MODEL:
   name: ocnn
   channel: 10
   nout: 128   # the hidden code
-  depth: 3
+  depth: 4
 
 LOSS:
   num_class: 40

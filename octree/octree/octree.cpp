@@ -541,7 +541,7 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
 
       // only approximate if enough points in support radius
       int num_points = unique_idx[t+1] - unique_idx[t];
-      if (num_points >= 4) {
+      if (num_points >= 3) {
 
         // calc uv-plane center
         uint32 pt[3] = { 0, 0, 0 };
@@ -1356,9 +1356,10 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     int depth_end) const {
   const int depth = info_->depth();
   const float* bbmin = info_->bbmin();
+  const float* bbmax = info_->bbmax();
   const float kMul = info_->bbox_max_width() / float(1 << depth);
   valid_depth_range(depth_start, depth_end);
-  
+
   V.clear(); F.clear();
   for (int d = depth_start; d <= depth_end; ++d) {
     const int* child_d = children_cpu(d);
@@ -1390,7 +1391,7 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     // run marching cube
     vector<float> vtx;
     vector<int> face;
-    if (info_->channel(OctreeInfo::kFeature) <= 3) {
+    if (info_->channel(OctreeInfo::kFeature) <= 4) {
       marching_cube_octree(vtx, face, pts, pts_ref, normals);
     } else {
       marching_cube_octree_implicit(vtx, face, pts, pts_ref, normals, coefs, 5);

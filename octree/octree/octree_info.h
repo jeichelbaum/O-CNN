@@ -19,7 +19,7 @@ class OctreeInfo {
 
   void initialize(int depth, int full_depth, bool node_displacement, bool node_feature,
       bool split_label, bool adaptive, int adaptive_depth, float threshold_distance,
-      float threshold_normal, bool key2xyz, bool extrapolate, bool save_pts,
+      float threshold_normal, bool key2xyz, bool extrapolate, bool save_pts, bool implicit,
       const Points& points);
 
   void reset();
