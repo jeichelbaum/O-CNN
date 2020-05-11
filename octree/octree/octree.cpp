@@ -1352,6 +1352,29 @@ void Octree::octree2pts(Points& point_cloud, int depth_start, int depth_end,
   point_cloud.set_points(pts, normals, vector<float>(), labels);
 }
 
+/*void Octree::export_points_scaled(std::string fname, vector<float> pts_scaled) {
+  const int depth = info_->depth();
+  const float* bbmin = info_->bbmin();
+  const float scale = info_->bbox_max_width() / float(1 << (depth));
+
+  std::ofstream objFile;
+  objFile.open(fname);
+
+  float pt[3] = {0,0,0};
+  float ct[3] = {-4.030212, 544.228516, 163.101822}; // only works if I have access to octree point center GOOD ENOUGH FOR NOW
+  for (int i = 0; i < pts_scaled.size(); i+=3) {
+
+    for (int c = 0; c < 3; c++) {
+      pt[c] = (pts_scaled[i+c] * scale) + bbmin[c] + ct[c];
+    }
+
+    objFile << "v " << pt[0] << " " << pt[1] << " " << pt[2] << std::endl;
+  }
+
+  objFile.close();
+}*/
+
+
 void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     int depth_end) const {
   const int depth = info_->depth();
@@ -1359,6 +1382,7 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
   const float* bbmax = info_->bbmax();
   const float kMul = info_->bbox_max_width() / float(1 << depth);
   valid_depth_range(depth_start, depth_end);
+
 
   V.clear(); F.clear();
   for (int d = depth_start; d <= depth_end; ++d) {
