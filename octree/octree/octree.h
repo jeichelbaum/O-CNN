@@ -8,6 +8,7 @@
 #include "octree_info.h"
 #include "octree_parser.h"
 #include "polynomial.h"
+#include "chamfer_dist.h"
 
 #include "eigen3/Eigen/Dense"
 
@@ -51,7 +52,10 @@ class Octree : public OctreeParser {
 
   void calc_signal(const Points& point_cloud, const vector<float>& pts_scaled,
       const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
-  void calc_signal(const bool calc_normal_err, const bool calc_dist_err);
+  void calc_signal(const bool calc_normal_err, const bool calc_dist_err, const vector<float>& pts_scaled, const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
+  
+  void calc_signal_implicit(const Points& point_cloud, const vector<float>& pts_scaled,
+      const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
   void extrapolate_signal();
 
   void key_to_xyz(vector<vector<uint32> >& xyz);

@@ -87,6 +87,7 @@ void Octree::build(const OctreeInfo& octree_info, const Points& point_cloud) {
     sort_keys_overlap(node_keys, sorted_idx, pts_scaled, overlap_amount());
   }
 
+  // sort keys and numbers into cells
   vector<uint32> unique_idx;
   unique_key(node_keys, unique_idx);
 
@@ -96,28 +97,30 @@ void Octree::build(const OctreeInfo& octree_info, const Points& point_cloud) {
   // set nnum_[], nnum_cum_[], nnum_nempty_[] and ptr_dis_[]
   calc_node_num();
 
+  covered_depth_nodes(); // weird displace but also computes idx_d needed for point attribution
+
   // average the signal for the last octree layer
-  calc_signal(point_cloud, pts_scaled, sorted_idx, unique_idx);
+  calc_signal_implicit(point_cloud, pts_scaled, sorted_idx, unique_idx);
 
   // average the signal for the other octree layers
-  if (oct_info_.locations(OctreeInfo::kFeature) == -1) {
+  /*if (oct_info_.locations(OctreeInfo::kFeature) == -1) {
     covered_depth_nodes();
 
     bool has_normal = point_cloud.info().has_property(PointsInfo::kNormal);
     bool calc_norm_err = oct_info_.is_adaptive() && has_normal;
     bool calc_dist_err = oct_info_.is_adaptive() && oct_info_.has_displace() && has_normal;
-    calc_signal(calc_norm_err, calc_dist_err);
-  }
+    calc_signal(calc_norm_err, calc_dist_err, pts_scaled, sorted_idx, unique_idx);
+  }*/
 
   // generate split label
-  if (oct_info_.has_property(OctreeInfo::kSplit)) {
+  /*if (oct_info_.has_property(OctreeInfo::kSplit)) {
     calc_split_label();
   }
 
   // extrapolate node feature
   if (oct_info_.extrapolate() && oct_info_.locations(OctreeInfo::kFeature) == -1) {
     extrapolate_signal();
-  }
+  }*/
 
   // serialization
   serialize();
@@ -392,6 +395,136 @@ void Octree::calc_node_num() {
 }
 
 // compute the average signal for the last octree layer
+void Octree::calc_signal_implicit(const Points& point_cloud, const vector<float>& pts_scaled,
+    const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx) {
+   
+  const int depth_max = oct_info_.depth();
+  const int depth_adp = oct_info_.adaptive_layer();
+  const int nnum_depth = oct_info_.node_num(depth_max);
+  const float imul = 2.0f / sqrtf(3.0f);
+  const vector<int>& children_depth = children_[depth_max];
+  const float* pts_normals = point_cloud.ptr(PointsInfo::kNormal);  // hard coded channel sizes
+
+  const int channel_pt = 3;
+  const int channel_normal = 9;
+  const int channel_dis = 1;
+ 
+  // allocate array mem
+  normal_err_[depth_max].resize(nnum_depth, 1.0e20f);
+  distance_err_[depth_max].resize(nnum_depth, 1.0e20f);
+
+  // iterate over each depth layer
+  for (int d = 0; d <= depth_max; d++) {
+    // number of nodes and point indices on depth
+    const int nnum_d = oct_info_.node_num(d);
+    const vector<int>& dnum_d = dnum_[d];
+    const vector<int>& didx_d = didx_[d];
+
+    const vector<int>& children_d = children_[d];
+    const vector<uint32>& key_d = keys_[d];
+    const float scale = static_cast<float>(1 << (depth_max - d));
+
+    // data arrays for current depth layer
+    vector<float>& normal_d = avg_normals_[d];
+    vector<float>& pt_d = avg_pts_[d];
+    vector<float>& displacement_d = displacement_[d];
+    vector<float>& normal_err_d = normal_err_[d];
+    vector<float>& distance_err_d = distance_err_[d];
+
+    // allocate memory for data arrays
+    normal_d.assign(nnum_d * channel_normal, 0.0f);
+    pt_d.assign(nnum_d * channel_pt, 0.0f);
+    displacement_d.assign(channel_dis * nnum_d, 0.0f);
+    normal_err_d.assign(nnum_d, 1.0e20f);   // !!! initialized
+    distance_err_d.assign(nnum_d, 1.0e20f);   // !!! as 1.0e20f
+
+    /* TODO LIST
+      - adaptive error
+    */
+
+    // iterate over all nodes at current depth
+    for (int i = 0; i < nnum_d; ++i) {
+
+      // TODO : skip leaf nodes ------------  BUT WHY?!
+      if (node_type(children_d[i]) == kLeaf) continue;
+
+      // --- NUM POINTS
+      // only process nodes with enough points
+      const int num_points = polynomial::num_points(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], unique_idx, sorted_idx);
+      if (num_points < 10) {
+        continue; // not setting the normal flags the node as empty
+      }
+      
+      // --- NORMALS
+      // average normal of contained points in all nodes from final layer
+      Eigen::Vector3f avg_norm = polynomial::avg_normal(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_normals, num_points, unique_idx, sorted_idx);
+      for (int c = 0; c < 3; ++c) {
+        normal_d[c * nnum_d + i] = avg_norm(c);  // output
+      }
+
+      // --- AVG POINT
+      Eigen::Vector3f avg_point = polynomial::avg_point(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_scaled, num_points, unique_idx, sorted_idx);
+      for (int c = 0; c < channel_pt; ++c) {
+        pt_d[c * nnum_d + i] = avg_point(c);   // output
+      }
+
+      // --- DISPLACEMENT - store displacement to ḱeep average point in cell, because SLIM uses it as plane center
+      uint32 ptu_base[3];
+      compute_pt(ptu_base, key_d[i], d);
+      float pt_base[3] = { ptu_base[0], ptu_base[1], ptu_base[2] };
+      float dis_avg[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+      for (int c = 0; c < 3; ++c) {
+        float fract_part = avg_point(c) - pt_base[c];
+        dis_avg[c] = fract_part - 0.5f;
+        dis_avg[3] += dis_avg[c] * avg_norm(c);
+      }
+      displacement_d[i] = dis_avg[3] * imul; // output 
+
+      //printf("base %f, %f, %f\n", pt_base[0],pt_base[1],pt_base[2]);
+
+      // --- IMPLICIT
+      Eigen::Vector3f node_center;
+      Eigen::Vector3f plane_center;
+      Eigen::Vector3f plane_normal; 
+      for (int c = 0; c < 3; c++) {
+        node_center(c) = float(pt_base[c]);
+        plane_center(c) = pt_d[c * nnum_d + i]; // average point of points in radius
+        plane_normal(c) = normal_d[c * nnum_d + i];
+      }
+      Eigen::MatrixXf R = polynomial::calc_rotation_matrix(plane_normal);
+      Eigen::MatrixXf coef = polynomial::biquad_approximation(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_scaled, scale, unique_idx, sorted_idx, R, plane_center, 1.0);
+      for (int c = 0; c < 6; c++) {
+        normal_d[(c+3) * nnum_d + i] = coef(c, 0);
+      }
+
+      // --- ERROR
+      /*float error = polynomial::biquad_approximation_chamfer_dist(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_scaled, num_points, scale, unique_idx, sorted_idx, node_center, plane_center, plane_normal, coef, 1.0);
+      error = error != -1 ? error : 100;
+      normal_err_d[i] = error;
+      distance_err_d[i] = error;*/
+
+      float error = polynomial::biquad_approximation_error(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_scaled, num_points, scale, unique_idx, sorted_idx, R, plane_center, coef, 1.0);
+      error = d == depth_max ? 0 : error;
+      normal_err_d[i] = error;
+      distance_err_d[i] = error;
+
+      //printf("depth %d -  nump %d - erro %f\n", d, num_points, error);
+
+      if (error > info_->threshold_distance()) {
+        for (int c = 0; c < 3; c++) {
+          normal_d[c * nnum_d + i] = 0;
+          pt_d[c * nnum_d + i] = 100;   // output  
+          displacement_d[i] = 100; // output
+        }
+      }
+    }
+  }
+
+  printf("version 1.70\n");
+  printf("implicit survived\n");
+}
+
+// compute the average signal for the last octree layer
 void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_scaled,
     const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx) {
   int depth = oct_info_.depth();
@@ -403,16 +536,18 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
   float support_radius = std::sqrt(3*std::pow(0.5+overlap_amount(), 2.0));
 
   const vector<int>& children = children_[depth];
+  // --------------------------- NORMALS signal
   if (normals != nullptr) {
     const int channel = point_cloud.info().channel(PointsInfo::kNormal);
     const int offset = info().has_implicit() ? 6 : 0;
-    avg_normals_[depth].assign((channel+offset) * nnum, 0.0f);
+    avg_normals_[depth].assign((channel+offset) * nnum, 0.0f); // allocate mem for normals
 
     #pragma omp parallel for
     for (int i = 0; i < nnum; i++) {
       int t = children[i];
       if (node_type(t) == kLeaf) continue;
 
+      // iterate over all scaled points in cell
       vector<float> avg_normal(channel, 0.0f);
       for (uint32 j = unique_idx[t]; j < unique_idx[t + 1]; j++) {
         int h = sorted_idx[j];
@@ -421,6 +556,7 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
         }
       }
 
+      // calc normalization facotr
       float factor = norm2(avg_normal);
       if (factor < 1.0e-6f) {
         int h = sorted_idx[unique_idx[t]];
@@ -429,13 +565,15 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
         }
         factor = norm2(avg_normal) + ESP;
       }
+      // store normalized avg normal
       for (int c = 0; c < channel; ++c) {
         avg_normals_[depth][c * nnum + i] = avg_normal[c] / factor;
       }
     }
   }
 
-  if (features != nullptr) {
+  // ------------------------ FEATURES
+  if (features != nullptr && false) {
     const int channel = point_cloud.info().channel(PointsInfo::kFeature);
     avg_features_[depth].assign(channel * nnum, 0.0f);
 
@@ -459,7 +597,8 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
     }
   }
 
-  if (labels != nullptr) {
+  // ------------------------------ LABELS
+  if (labels != nullptr && false) {
     // the channel of label is fixed as 1
     avg_labels_[depth].assign(nnum, -1.0f);   // initialize as -1
     const int npt = point_cloud.info().pt_num();
@@ -481,13 +620,14 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
     }
   }
 
+  // -------------------------------- DISPLACEMENT
   if (oct_info_.has_displace() || oct_info_.save_pts()) {
     const int channel = 3;
     const float mul = 1.1547f; // = 2.0f / sqrt(3.0f)
-    avg_pts_[depth].assign(nnum * channel, 0.0f);
+    avg_pts_[depth].assign(nnum * channel, 0.0f); // allocate mem for average point in cell
     int channel_dis = normals == nullptr ? 4 : 1;
     vector<float>& displacement = displacement_[depth];
-    displacement.assign(channel_dis * nnum, 0.0f);
+    displacement.assign(channel_dis * nnum, 0.0f); // allocate mem for displacement factor
 
     #pragma omp parallel for
     for (int i = 0; i < nnum; i++) {
@@ -541,16 +681,14 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
 
       // only approximate if enough points in support radius
       int num_points = unique_idx[t+1] - unique_idx[t];
-      if (num_points >= 3) {
+      if (num_points >= 20) {
 
         // calc uv-plane center
-        uint32 pt[3] = { 0, 0, 0 };
-        compute_pt(pt, keys_[depth][i], depth);
+        //uint32 pt[3] = { 0, 0, 0 };
+        //compute_pt(pt, keys_[depth][i], depth);
         Eigen::Vector3f plane_center;
-        plane_center << float(pt[0]) + .5, float(pt[1]) + .5, float(pt[2]) + .5;
-        float d = displacement[i] * 0.8660254f; 
         for (int c = 0; c < 3; c++) {
-          plane_center(c) += (d * avg_normals_[depth][c * nnum + i]);
+          plane_center(c) = avg_pts_[depth][c * nnum + i];
         }
 
         // get uv-plane normal 
@@ -571,18 +709,20 @@ void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_sca
         // if good approximation
         float threshold = 5;
         bool use_any = false;
-        if ((coefs.maxCoeff() < threshold && coefs.minCoeff() > -threshold && abs_sum < threshold*2) || use_any) {
-          // store coefficients into the remainings space 3-9
-          for (int c = 0; c < 6; c++) {
-            avg_normals_[depth][(c+3) * nnum + i] = coefs(c, 0);
-          }
+        if (!((coefs.maxCoeff() < threshold && coefs.minCoeff() > -threshold && abs_sum < threshold*2) || use_any)) {
+          for (int c = 0; c < 6; c++) { coefs(c,0) = 0; }
+        }
+
+        // store coefficients into the remainings space 3-9
+        for (int c = 0; c < 6; c++) {
+          avg_normals_[depth][(c+3) * nnum + i] = coefs(c, 0);
         }
       }
     }
   }
 }
 
-void Octree::calc_signal(const bool calc_normal_err, const bool calc_dist_err) {
+void Octree::calc_signal(const bool calc_normal_err, const bool calc_dist_err, const vector<float>& pts_scaled, const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx) {
   const int depth = oct_info_.depth();
   const int depth_adp = oct_info_.adaptive_layer();
   const int nnum_depth = oct_info_.node_num(depth);
@@ -594,6 +734,7 @@ void Octree::calc_signal(const bool calc_normal_err, const bool calc_dist_err) {
   const vector<float>& label_depth = avg_labels_[depth];
 
   const int channel_pt = pt_depth.size() / nnum_depth;
+  //const int channel_normal = (normal_depth.size() / nnum_depth) + oct_info_.has_implicit() ? 6 : 0;
   const int channel_normal = normal_depth.size() / nnum_depth;
   const int channel_feature = feature_depth.size() / nnum_depth;
   const int channel_label = label_depth.size() / nnum_depth;
@@ -601,15 +742,20 @@ void Octree::calc_signal(const bool calc_normal_err, const bool calc_dist_err) {
   const bool has_pt = !pt_depth.empty();
   const bool has_dis = !displacement_[depth].empty();
   const bool has_normal = !normal_depth.empty();
+  const bool has_implicit = oct_info_.has_implicit();
   const bool has_feature = !feature_depth.empty();
   const bool has_label = !label_depth.empty();
 
   if (calc_normal_err) normal_err_[depth].resize(nnum_depth, 1.0e20f);
   if (calc_dist_err) distance_err_[depth].resize(nnum_depth, 1.0e20f);
 
+
+  //std::ofstream outfile("/home/jeri/dev/implicit_ocnn/debug.txt");
+
   for (int d = depth - 1; d >= 0; --d) {
     const vector<int>& dnum_d = dnum_[d];
     const vector<int>& didx_d = didx_[d];
+
     const vector<int>& children_d = children_[d];
     const vector<uint32>& key_d = keys_[d];
     const float scale = static_cast<float>(1 << (depth - d));
@@ -632,18 +778,24 @@ void Octree::calc_signal(const bool calc_normal_err, const bool calc_dist_err) {
     if (calc_normal_err) normal_err_d.assign(nnum_d, 1.0e20f);   // !!! initialized
     if (calc_dist_err) distance_err_d.assign(nnum_d, 1.0e20f);   // !!! as 1.0e20f
 
+
+    // iterate over all nodes at current depth
     for (int i = 0; i < nnum_d; ++i) {
       if (node_type(children_d[i]) == kLeaf) continue;
 
       vector<float> n_avg(channel_normal, 0.0f);
       if (has_normal) {
+
+        // iterate over all nodes from final layer contained in cube
         for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
           if (node_type(children_depth[j]) == kLeaf) continue;
+
           for (int c = 0; c < channel_normal; ++c) {
-            n_avg[c] += normal_depth[c * nnum_depth + j];
+            n_avg[c] += normal_depth[c * nnum_depth + j]; // copy normal from deepest layer
           }
         }
 
+        // iterate over contained  nodes and avg their normals
         float len = norm2(n_avg);
         if (len < 1.0e-6f) {
           for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
@@ -655,6 +807,7 @@ void Octree::calc_signal(const bool calc_normal_err, const bool calc_dist_err) {
           len = norm2(n_avg) + ESP;
         }
 
+        // average normal of contained nodes
         for (int c = 0; c < channel_normal; ++c) {
           n_avg[c] /= len;
           normal_d[c * nnum_d + i] = n_avg[c];  // output
@@ -666,6 +819,7 @@ void Octree::calc_signal(const bool calc_normal_err, const bool calc_dist_err) {
         if (node_type(children_depth[j]) != kLeaf) count += 1.0f;
       }
 
+      // avg points of finest contained nodes
       vector<float> pt_avg(channel_pt, 0.0f);
       if (has_pt) {
         for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
@@ -785,8 +939,35 @@ void Octree::calc_signal(const bool calc_normal_err, const bool calc_dist_err) {
 
         distance_err_d[i] = std::max<float>(distance_max2, distance_max1);
       }
+
+      if (has_implicit) {
+
+        //outfile << "\t node_d " << children_d[i] << std::endl;
+
+        // calc uv-plane center
+        Eigen::Vector3f plane_center;
+        Eigen::Vector3f plane_normal; 
+        for (int c = 0; c < 3; c++) {
+          plane_center(c) = pt_d[c * nnum_d + i];
+          plane_normal(c) = normal_d[c * nnum_d + i];
+        }
+        Eigen::MatrixXf R = polynomial::calc_rotation_matrix(plane_normal);
+
+        //outfile << "\t plane center " << plane_center(0) << ", " << plane_center(1) << ", " << plane_center(2) << std::endl;
+
+        Eigen::MatrixXf coef = polynomial::biquad_approximation(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_scaled, scale, unique_idx, sorted_idx, R, plane_center, 1.0);
+
+        for (int c = 0; c < 6; c++) {
+          normal_d[(c+3) * nnum_d + i] = coef(c, 0);
+        }
+
+        normal_err_d[i] = 20000;
+        distance_err_d[i] = 20000;
+      }
     }
   }
+
+  //outfile.close();
 }
 
 void Octree::extrapolate_signal() {
@@ -1415,7 +1596,7 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     // run marching cube
     vector<float> vtx;
     vector<int> face;
-    if (info_->channel(OctreeInfo::kFeature) <= 4) {
+    if (info_->channel(OctreeInfo::kFeature) <= 4 || false) {
       marching_cube_octree(vtx, face, pts, pts_ref, normals);
     } else {
       marching_cube_octree_implicit(vtx, face, pts, pts_ref, normals, coefs, 5);
