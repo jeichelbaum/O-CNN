@@ -137,9 +137,9 @@ void OctreeParser::node_slim_coefficients(float* coefs, int id, int depth) const
   int loc = info_->locations(OctreeInfo::kFeature);
   int ch = info_->channel(OctreeInfo::kFeature);
   if ((loc == -1 || loc == depth) && ch >= 3) {
-    for (int c = 0; c < 6; ++c) { coefs[c] = feature_d[(c+3) * num + id]; }
+    for (int c = 0; c < 10; ++c) { coefs[c] = feature_d[(c+3) * num + id]; }
   } else {
-    for (int c = 0; c < 6; ++c) { coefs[c] = 0; }
+    for (int c = 0; c < 10; ++c) { coefs[c] = 0; }
   }
 }
 

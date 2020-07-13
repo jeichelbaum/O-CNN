@@ -54,6 +54,9 @@ class Octree : public OctreeParser {
       const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
   void calc_signal(const bool calc_normal_err, const bool calc_dist_err, const vector<float>& pts_scaled, const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
   
+  void read_signal(string fname);
+  int get_key_index(const vector<uint32>& key_d, uint32 key);
+
   void calc_signal_implicit(const Points& point_cloud, const vector<float>& pts_scaled,
       const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
   void extrapolate_signal();

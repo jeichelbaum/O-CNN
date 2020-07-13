@@ -40,6 +40,10 @@ class polynomial {
     const vector<float>& pts_scaled, float scale_factor, const vector<OctreeParser::uint32>& unique_idx, const vector<OctreeParser::uint32>& sorted_idx, 
     MatrixXf R, Vector3f plane_center, float support_radius);
 
+  static MatrixXf triquad_approximation(OctreeParser* octree, const vector<int>& children_depth, int cstart, int cend, 
+    const vector<float>& pts_scaled, const float* pt_normals, float scale_factor, const vector<OctreeParser::uint32>& unique_idx, const vector<OctreeParser::uint32>& sorted_idx, 
+    Vector3f plane_center, float support_radius);
+
   static float biquad_approximation_error(OctreeParser* octree, const vector<int>& children_depth, int cstart, int cend, 
     const vector<float>& pts_scaled, const int num_points, float scale_factor, const vector<OctreeParser::uint32>& unique_idx, const vector<OctreeParser::uint32>& sorted_idx, 
     MatrixXf R, Vector3f plane_center, MatrixXf coef, float support_radius);

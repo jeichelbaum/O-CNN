@@ -171,6 +171,54 @@ MatrixXf polynomial::biquad_approximation(OctreeParser* octree, const vector<int
     return c;
 }
 
+
+MatrixXf polynomial::triquad_approximation(OctreeParser* octree, const vector<int>& children_depth, int cstart, int cend, 
+    const vector<float>& pts_scaled, const float* pt_normals, float scale_factor, const vector<OctreeParser::uint32>& unique_idx, const vector<OctreeParser  ::uint32>& sorted_idx, 
+    Vector3f plane_center, float support_radius) {
+
+    MatrixXf B = MatrixXf::Zero(10,10);
+    MatrixXf b = MatrixXf::Zero(10,1);
+    MatrixXf bf = MatrixXf::Zero(10,1);
+    MatrixXf p = MatrixXf::Zero(3,1);
+    Vector3f pvec = Vector3f::Zero();
+
+    float w;
+    float doffset = 0.1;
+
+    // iterate over all nodes from final layer contained in cube
+    for (int j = cstart; j < cend; ++j) {
+        if (octree->node_type(children_depth[j]) == OctreeParser::NodeType::kLeaf) continue;
+
+        int t = children_depth[j];
+
+        for (int l = unique_idx[t]; l < unique_idx[t + 1]; l++) {
+            int pi = 3*sorted_idx[l];
+
+            for (int ioff = -1; ioff <= 1; ioff++) {
+                // local coordinate system
+                p << pts_scaled[pi] / scale_factor + pt_normals[pi] * float(ioff) * doffset,
+                pts_scaled[pi + 1] / scale_factor + pt_normals[pi + 1] * float(ioff) * doffset, 
+                pts_scaled[pi + 2] / scale_factor + pt_normals[pi + 2] * float(ioff) * doffset;
+                
+                p = p - plane_center;
+                w = p.norm() / support_radius; // calculate distance - support radius is always 1.0 unless there is overlap then equal radius
+                pvec = Vector3f(p(0, 0), p(1, 0), p(2, 0));
+
+                // polynomial for each point
+                b = triquad(pvec);
+                w = 1.0f - (w*w);
+
+                B += (w*b) * b.transpose(); 
+                bf += w * b * doffset;
+            }
+        }
+    }
+
+    MatrixXf c(10,1);
+    c = B.inverse() * bf;
+    return c;
+}
+
 float polynomial::biquad_approximation_error(OctreeParser* octree, const vector<int>& children_depth, int cstart, int cend, 
     const vector<float>& pts_scaled, const int num_points, float scale_factor, const vector<OctreeParser::uint32>& unique_idx, const vector<OctreeParser::uint32>& sorted_idx, 
     MatrixXf R, Vector3f plane_center, MatrixXf coef, float support_radius)

@@ -125,29 +125,30 @@ void marching_cube_octree_implicit(vector<float>& V, vector<int>& F, const vecto
     const vector<float>& pts_ref, const vector<float>& normals, const vector<float>& coefs, const int n_subdivision) {
   int num = pts.size() / 3;
   V.clear(); F.clear();
+
+  // iterate over all nodes at current layer
   for (int i = 0; i < num; ++i) {
     // get point and normal
     int ix3 = i * 3;
-    float pt[3], pt_ref[3], normal[3], c[6];
+    float pt[3], pt_ref[3], normal[3], c[10];
     for (int j = 0; j < 3; ++j) {
       pt_ref[j] = pts_ref[ix3 + j];       // global node start point
       pt[j] = pts[ix3 + j] - pt_ref[j];   // plane center in local coordinates 
       normal[j] = normals[ix3 + j];       // plane normal
     }
-    for (int j = 0; j < 6; ++j) { c[j] = coefs[i*6 + j]; }  // slim coefficients
+    for (int j = 0; j < 10; ++j) { c[j] = coefs[i*10+j]; }  // surfel coefficients
 
     Eigen::Vector3f plane_center(pt[0], pt[1], pt[2]);
-    Eigen::Vector3f plane_normal(normal[0], normal[1], normal[2]);
-    Eigen::MatrixXf R = polynomial::calc_rotation_matrix(plane_normal);
-    Eigen::MatrixXf coef(6,1);
-    coef << c[0],c[1],c[2],c[3],c[4],c[5]; 
+    Eigen::MatrixXf coefs3(10,1);
+    coefs3 << c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9]; 
 
-    auto coefs3 = polynomial::biquad2triquad(plane_center, R, coef, 1);
+    // trying to get plane to visualize
+    /*for (int j = 0; j < 10; ++j) { coefs3(j, 0) = 0; }  // slim coefficients
+    coefs3(0,0) = 0.25;
+    coefs3(1,0) = 1;*/
 
     float pt_ref_sub[3] = {0};
     float step = 1.0 / float(n_subdivision);
-
-    Eigen::Vector3f ray_dir = {1, 0, 0};
 
     // compute function value for corners
     for (int x = 0; x < n_subdivision; x++) {
@@ -161,7 +162,7 @@ void marching_cube_octree_implicit(vector<float>& V, vector<int>& F, const vecto
                 float fval[8] = {0};
                 for (int k = 0; k < 8; ++k) {
                     for (int j = 0; j < 3; ++j) {
-                        p(j) = MarchingCube::corner_[k][j] * step + pt_ref_sub[j];
+                        p(j) = MarchingCube::corner_[k][j] * step + pt_ref_sub[j] - pt[j];
                     }
 
                     // calcualate function value
