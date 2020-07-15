@@ -1729,7 +1729,7 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     } else {
       printf("rendering implicit 2.01\n");
       //marching_cube_octree_implicit(vtx, face, pts, pts_ref, normals, coefs, 5);
-      triquad_marchingcube(vtx, face, pts_ref, cube_size, pts, coefs, 20);
+      triquad_marchingcube(vtx, face, pts_ref, cube_size, pts, coefs, max(5, 20 - d*3));
     }
 
     // concate
