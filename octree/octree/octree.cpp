@@ -100,9 +100,9 @@ void Octree::build(const OctreeInfo& octree_info, const Points& point_cloud) {
   covered_depth_nodes(); // weird displace but also computes idx_d needed for point attribution
 
   // average the signal for the last octree layer
-  //calc_signal_implicit(point_cloud, pts_scaled, sorted_idx, unique_idx);
+  calc_signal_implicit(point_cloud, pts_scaled, sorted_idx, unique_idx);
 
-  read_signal("/home/jeri/dev/implicit_ocnn/testwrite.exoct");
+  //read_signal("/home/jeri/dev/implicit_ocnn/testwrite.exoct");
 
   // average the signal for the other octree layers
   /*if (oct_info_.locations(OctreeInfo::kFeature) == -1) {
@@ -588,68 +588,60 @@ void Octree::calc_signal_implicit(const Points& point_cloud, const vector<float>
       
       // --- NORMALS
       // average normal of contained points in all nodes from final layer
-      Eigen::Vector3f avg_norm = polynomial::avg_normal(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_normals, num_points, unique_idx, sorted_idx);
+      /*Eigen::Vector3f avg_norm = polynomial::avg_normal(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_normals, num_points, unique_idx, sorted_idx);
       for (int c = 0; c < 3; ++c) {
         normal_d[c * nnum_d + i] = avg_norm(c);  // output
-      }
+      }*/
 
       // --- AVG POINT
       Eigen::Vector3f avg_point = polynomial::avg_point(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_scaled, num_points, unique_idx, sorted_idx);
       for (int c = 0; c < channel_pt; ++c) {
         pt_d[c * nnum_d + i] = avg_point(c);   // output
+        normal_d[c * nnum_d + i] = avg_point(c);  // output - DIRTY HACK
       }
 
       // --- DISPLACEMENT - store displacement to ḱeep average point in cell, because SLIM uses it as plane center
-      uint32 ptu_base[3];
+      /*uint32 ptu_base[3];
       compute_pt(ptu_base, key_d[i], d);
-      float pt_base[3] = { ptu_base[0], ptu_base[1], ptu_base[2] };
-      //printf("depth: %d - key %d - nodeid: %d - pos %f, %f, %f\n", d, key_d[i], i, pt_base[0], pt_base[1], pt_base[2]);
-      
+      float pt_base[3] = { ptu_base[0], ptu_base[1], ptu_base[2]}; 
+    
       float dis_avg[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
       for (int c = 0; c < 3; ++c) {
-        float fract_part = avg_point(c) - pt_base[c];
+        float fract_part = (avg_point(c) - pt_base[c]*scale) / scale;
         dis_avg[c] = fract_part - 0.5f;
         dis_avg[3] += dis_avg[c] * avg_norm(c);
       }
-      displacement_d[i] = dis_avg[3] * imul; // output 
-
-      //printf("base %f, %f, %f\n", pt_base[0],pt_base[1],pt_base[2]);
+      displacement_d[i] = dis_avg[3] * imul; // output*/
+      displacement_d[i] = 0; // output - too stupid to calc this correctly so pass center directly through first 3 normals features
 
       // --- IMPLICIT
-      Eigen::Vector3f node_center;
       Eigen::Vector3f plane_center;
-      Eigen::Vector3f plane_normal; 
       for (int c = 0; c < 3; c++) {
-        node_center(c) = float(pt_base[c]);
         plane_center(c) = pt_d[c * nnum_d + i]; // average point of points in radius
-        plane_normal(c) = normal_d[c * nnum_d + i];
       }
-      Eigen::MatrixXf R = polynomial::calc_rotation_matrix(plane_normal);
       Eigen::MatrixXf coef = polynomial::triquad_approximation(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_scaled, pts_normals, scale, unique_idx, sorted_idx, plane_center, 1.0);
       for (int c = 0; c < 10; c++) {
         normal_d[(c+3) * nnum_d + i] = coef(c, 0);
       }
 
       // change to triquad taubin
-      float error = polynomial::biquad_approximation_error(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_scaled, num_points, scale, unique_idx, sorted_idx, R, plane_center, coef, 1.0);
-      error = d == depth_max ? 0 : error;
+      float error = polynomial::triquad_approximation_taubin_dist(this, children_depth, didx_d[i], didx_d[i] + dnum_d[i], pts_scaled, scale, unique_idx, sorted_idx, plane_center, coef, 1.0);
+      //error = d == depth_max ? 0 : 100; // uncommenting creates full octree
       normal_err_d[i] = error;
       distance_err_d[i] = error;
 
       //printf("depth %d -  nump %d - erro %f\n", d, num_points, error);
 
       // actually I dont get this part again, but seems like to control error trimming
-      if (error > info_->threshold_distance()) {
+      if (error > info_->threshold_distance() && d != depth_max) {
         for (int c = 0; c < 3; c++) {
           normal_d[c * nnum_d + i] = 0;
-          pt_d[c * nnum_d + i] = 100;   // output  
-          displacement_d[i] = 100; // output
         }
       }
     }
   }
 
-  printf("version 1.72\n");
+  printf("version 1.73\n");
   printf("implicit survived\n");
 }
 
@@ -1693,12 +1685,12 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
   const float kMul = info_->bbox_max_width() / float(1 << depth);
   valid_depth_range(depth_start, depth_end);
 
-
   V.clear(); F.clear();
   for (int d = depth_start; d <= depth_end; ++d) {
     const int* child_d = children_cpu(d);
     const int num = info_->node_num(d);
     const float scale = (1 << (depth - d)) * kMul;
+    const float cube_size = (1 << (depth - d));
 
     vector<float> pts, normals, pts_ref, coefs;
     for (int i = 0; i < num; ++i) {
@@ -1713,8 +1705,15 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
 
       for (int c = 0; c < 3; ++c) {
         normals.push_back(n[c]);
-        pts.push_back(pt[c]);
-        pts_ref.push_back(pt_ref[c]);
+
+        pt[c] = n[c];// dirty hack
+
+        //pt[c] *= cube_size;             // adjust surfel center to global scale
+        pts.push_back(pt[c]);           // surfel center = point average
+        
+        pt_ref[c] *= cube_size;         // adjust cell base pos to global scale
+        pts_ref.push_back(pt_ref[c]);   // cell base
+
       }
 
       for (int c = 0; c < 10; ++c) {
@@ -1728,8 +1727,9 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     if (info_->channel(OctreeInfo::kFeature) <= 4 || false) {
       marching_cube_octree(vtx, face, pts, pts_ref, normals);
     } else {
-      printf("rendering implicit\n");
-      marching_cube_octree_implicit(vtx, face, pts, pts_ref, normals, coefs, 5);
+      printf("rendering implicit 2.01\n");
+      //marching_cube_octree_implicit(vtx, face, pts, pts_ref, normals, coefs, 5);
+      triquad_marchingcube(vtx, face, pts_ref, cube_size, pts, coefs, 20);
     }
 
     // concate
@@ -1742,7 +1742,7 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     nv = vtx.size() / 3;
     for (int i = 0; i < nv; ++i) {
       for (int c = 0; c < 3; ++c) {
-        float vl = vtx[i * 3 + c] * scale + bbmin[c];
+        float vl = vtx[i * 3 + c] * kMul + bbmin[c];
         V.push_back(vl);
       }
     }

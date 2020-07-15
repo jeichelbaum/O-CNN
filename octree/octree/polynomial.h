@@ -52,13 +52,21 @@ class polynomial {
     const vector<float>& pts_scaled, const int num_points, float scale_factor, const vector<OctreeParser::uint32>& unique_idx, const vector<OctreeParser::uint32>& sorted_idx, 
     Vector3f node_center, Vector3f plane_center, Vector3f plane_normal, MatrixXf coef, float support_radius);
 
+  static float triquad_approximation_taubin_dist(OctreeParser* octree, const vector<int>& children_depth, int cstart, int cend, 
+    const vector<float>& pts_scaled, float scale_factor, const vector<OctreeParser::uint32>& unique_idx, const vector<OctreeParser::uint32>& sorted_idx, 
+    Vector3f surf_center, MatrixXf surf_coef, float support_radius);
+
   static float fval_biquad(float u, float v, MatrixXf c);
   static float fval_triquad(Vector3f p, Vector3f plane_center, MatrixXf c);
   static float taubin_distance_biquad(float u, float v, MatrixXf c);
+  static float taubin_distance_triquad(float x, float y, float z, MatrixXf c); 
 
   static Vector3f uv2xyz(Vector2f uv, Vector3f plane_center, MatrixXf R, MatrixXf c);
   static Vector3f uv2norm(Vector2f uv, Vector3f pc, MatrixXf R, MatrixXf c);
   static MatrixXf biquad2triquad(Vector3f plane_center, MatrixXf R, MatrixXf c, float range);
+
+  static void triquad_marchingcube(vector<float>& V, vector<int>& F, const vector<float>& pts,
+    const vector<float>& pts_ref, const vector<float>& normals, const vector<float>& coefs, const int n_subdivision);
 };
 
 

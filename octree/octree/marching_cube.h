@@ -39,6 +39,11 @@ class MarchingCube {
 // two convenient interfaces
 void marching_cube_octree(vector<float>& V, vector<int>& F, const vector<float>& pts,
     const vector<float>& pts_ref, const vector<float>& normals);
+
+// sample multiple surfels at same octree depth
+void triquad_marchingcube(vector<float>& V, vector<int>& F, const vector<float>& cell_bases, float cell_size, 
+    const vector<float>& surfel_centers, const vector<float>& surfel_coefs, const int n_subdivision);
+        
 void marching_cube_octree_implicit(vector<float>& V, vector<int>& F, const vector<float>& pts,
 const vector<float>& pts_ref, const vector<float>& normals, const vector<float>& coefs, const int n_subdivision);
 void intersect_cube(vector<float>& V, const float* pt, const float* pt_base,

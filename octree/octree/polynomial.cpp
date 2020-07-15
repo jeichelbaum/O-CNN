@@ -7,7 +7,10 @@ int polynomial::num_points(OctreeParser* octree, const vector<int>& children_dep
 
     // iterate over all nodes from final layer contained in cube
     for (int j = cstart; j < cend; ++j) {
-        if (octree->node_type(children_depth[j]) == OctreeParser::NodeType::kLeaf) continue;
+         // free pass for unit testing purpose
+        if (octree == NULL) {}
+        // skip index if not a leaf node
+        else if ( octree->node_type(children_depth[j]) == OctreeParser::NodeType::kLeaf) { continue; }
 
         int t = children_depth[j];
         for (int l = unique_idx[t]; l < unique_idx[t + 1]; l++) {
@@ -25,13 +28,15 @@ Vector3f polynomial::avg_point(OctreeParser* octree, const vector<int>& children
 
     // iterate over all nodes from final layer contained in cube
     for (int j = cstart; j < cend; ++j) {
-        // TODO WHY?!
-        if (octree->node_type(children_depth[j]) == OctreeParser::NodeType::kLeaf) continue;
+         // free pass for unit testing purpose
+        if (octree == NULL) {}
+        // skip index if not a leaf node
+        else if ( octree->node_type(children_depth[j]) == OctreeParser::NodeType::kLeaf) { continue; }
 
         // for each point in node at finest level
         int t = children_depth[j];
         for (int l = unique_idx[t]; l < unique_idx[t + 1]; l++) {
-            
+
             // get normal and sum to average
             for (int c = 0; c < 3; c++) {
                 avg(c) += pts_scaled[3*sorted_idx[l] + c];
@@ -65,7 +70,7 @@ Vector3f polynomial::avg_normal(OctreeParser* octree, const vector<int>& childre
     }
 
     // divide by number normals
-    return avg / float(num_normals);
+    return avg.normalized();
 }
 
 
@@ -187,7 +192,10 @@ MatrixXf polynomial::triquad_approximation(OctreeParser* octree, const vector<in
 
     // iterate over all nodes from final layer contained in cube
     for (int j = cstart; j < cend; ++j) {
-        if (octree->node_type(children_depth[j]) == OctreeParser::NodeType::kLeaf) continue;
+         // free pass for unit testing purpose
+        if (octree == NULL) {}
+        // skip index if not a leaf node
+        else if ( octree->node_type(children_depth[j]) == OctreeParser::NodeType::kLeaf) { continue; }
 
         int t = children_depth[j];
 
@@ -195,21 +203,22 @@ MatrixXf polynomial::triquad_approximation(OctreeParser* octree, const vector<in
             int pi = 3*sorted_idx[l];
 
             for (int ioff = -1; ioff <= 1; ioff++) {
-                // local coordinate system
-                p << pts_scaled[pi] / scale_factor + pt_normals[pi] * float(ioff) * doffset,
-                pts_scaled[pi + 1] / scale_factor + pt_normals[pi + 1] * float(ioff) * doffset, 
-                pts_scaled[pi + 2] / scale_factor + pt_normals[pi + 2] * float(ioff) * doffset;
-                
-                p = p - plane_center;
+                // load point and displace along surfaces normal
+                p << pts_scaled[pi] + pt_normals[pi] * float(ioff) * doffset,
+                pts_scaled[pi + 1] + pt_normals[pi + 1] * float(ioff) * doffset, 
+                pts_scaled[pi + 2] + pt_normals[pi + 2] * float(ioff) * doffset;
+
+                // transform into local coords of surfel
+                p = (p - plane_center) / scale_factor;
                 w = p.norm() / support_radius; // calculate distance - support radius is always 1.0 unless there is overlap then equal radius
                 pvec = Vector3f(p(0, 0), p(1, 0), p(2, 0));
 
                 // polynomial for each point
                 b = triquad(pvec);
-                w = 1.0f - (w*w);
+                w = fmax(0.0, 1.0f - (w*w));
 
                 B += (w*b) * b.transpose(); 
-                bf += w * b * doffset;
+                bf += w * b  * float(ioff) * doffset;
             }
         }
     }
@@ -257,6 +266,34 @@ float polynomial::biquad_approximation_error(OctreeParser* octree, const vector<
  return error;   
 }
 
+float polynomial::triquad_approximation_taubin_dist(OctreeParser* octree, const vector<int>& children_depth, int cstart, int cend, 
+    const vector<float>& pts_scaled, float scale_factor, const vector<OctreeParser::uint32>& unique_idx, const vector<OctreeParser::uint32>& sorted_idx, 
+    Vector3f surf_center, MatrixXf surf_coef, float support_radius)
+{
+    MatrixXf p = MatrixXf::Zero(3,1);
+
+    float max_taubin = 0;
+
+    // iterate over all nodes from final layer contained in cube
+    for (int j = cstart; j < cend; ++j) {
+         // free pass for unit testing purpose
+        if (octree == NULL) {}
+        // skip index if not a leaf node
+        else if ( octree->node_type(children_depth[j]) == OctreeParser::NodeType::kLeaf) { continue; }
+
+        int t = children_depth[j];
+
+        for (int l = unique_idx[t]; l < unique_idx[t + 1]; l++) {
+            int pi = 3*sorted_idx[l];
+            p << pts_scaled[pi], pts_scaled[pi+1], pts_scaled[pi+2];
+            // transform into local coords of surfel
+            p = (p - surf_center) / scale_factor;
+            max_taubin = fmax(max_taubin, taubin_distance_triquad(p(0,0), p(1,0), p(2,0), surf_coef));
+        }
+    }
+
+    return max_taubin;
+}
 
 float polynomial::biquad_approximation_chamfer_dist(OctreeParser* octree, const vector<int>& children_depth, int cstart, int cend, 
     const vector<float>& pts_scaled, const int num_points, float scale_factor, const vector<OctreeParser::uint32>& unique_idx, const vector<OctreeParser::uint32>& sorted_idx, 
@@ -320,6 +357,8 @@ float polynomial::fval_biquad(float u, float v, MatrixXf c) {
     return b.sum();
 }
 
+
+// TODO remove plane center because not expected to center
 float polynomial::fval_triquad(Vector3f p, Vector3f plane_center, MatrixXf c)
 {
     MatrixXf b(10, 1);
@@ -333,6 +372,15 @@ float polynomial::taubin_distance_biquad(float u, float v, MatrixXf c)
     float dx = c(1, 0) + c(3, 0)*u + c(4, 0)*v;
     float dy = c(2, 0) + c(4, 0)*u + c(5, 0)*v;
     return fval_biquad(u, v, c) / (dx*dx + dy*dy);  
+}
+
+float polynomial::taubin_distance_triquad(float x, float y, float z, MatrixXf c) 
+{
+
+    float dx = c(1, 0) + 2*c(4, 0)*x + c(5, 0)*y + c(6,0)*z;
+    float dy = c(2, 0) + c(5, 0)*x + 2*c(7, 0)*y + c(8,0)*z;
+    float dz = c(3, 0) + c(6, 0)*x + c(8, 0)*y + 2*c(9,0)*z;
+    return fabs(fval_triquad(Vector3f(x,y,z),Vector3f::Zero(), c)) / sqrtf((dx*dx + dy*dy + dz*dz));  
 }
 
 Vector3f polynomial::uv2xyz(Vector2f uv, Vector3f plane_center, MatrixXf R, MatrixXf c)
@@ -388,4 +436,69 @@ MatrixXf polynomial::biquad2triquad(Vector3f plane_center, MatrixXf R, MatrixXf 
 
     c_new = B.inverse() * bf;
     return c_new;
+}
+
+
+void polynomial::triquad_marchingcube(vector<float>& V, vector<int>& F, const vector<float>& pts,
+    const vector<float>& pts_ref, const vector<float>& normals, const vector<float>& coefs, const int n_subdivision) {
+  int num = pts.size() / 3;
+  V.clear(); F.clear();
+
+  // iterate over all nodes at current layer
+  for (int i = 0; i < num; ++i) {
+    // get point and normal
+    int ix3 = i * 3;
+    float pt[3], pt_ref[3], normal[3], c[10];
+    for (int j = 0; j < 3; ++j) {
+      pt_ref[j] = pts_ref[ix3 + j];       // global node start point
+      pt[j] = pts[ix3 + j] - pt_ref[j];   // plane center in local coordinates 
+      normal[j] = normals[ix3 + j];       // plane normal
+    }
+    for (int j = 0; j < 10; ++j) { c[j] = coefs[i*10+j]; }  // surfel coefficients
+
+    Eigen::Vector3f plane_center(pt[0], pt[1], pt[2]);
+    Eigen::MatrixXf coefs3(10,1);
+    coefs3 << c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9]; 
+
+    // trying to get plane to visualize
+    /*for (int j = 0; j < 10; ++j) { coefs3(j, 0) = 0; }  // slim coefficients
+    coefs3(0,0) = 0.25;
+    coefs3(1,0) = 1;*/
+
+    float pt_ref_sub[3] = {0};
+    float step = 1.0 / float(n_subdivision);
+
+    // compute function value for corners
+    for (int x = 0; x < n_subdivision; x++) {
+        pt_ref_sub[0] = x * step;
+        for (int y = 0; y < n_subdivision; y++) {
+            pt_ref_sub[1] = y * step;
+            for (int z = 0; z < n_subdivision; z++) {
+                pt_ref_sub[2] = z * step;
+
+                Eigen::Vector3f p;
+                float fval[8] = {0};
+                for (int k = 0; k < 8; ++k) {
+                    for (int j = 0; j < 3; ++j) {
+                        p(j) = MarchingCube::corner_[k][j] * step + pt_ref_sub[j] - pt[j];
+                    }
+
+                    // calcualate function value
+                    fval[k] = polynomial::fval_triquad(p, plane_center, coefs3);
+                }
+
+                // marching cube
+                int vid = V.size() / 3;
+                float ref[3] = {0,0,0};
+                MarchingCube mcube(fval, 0, ref, vid);
+                mcube.contouring(V, F);
+                for (int i = vid; i < V.size() / 3; i++) {
+                    for (int c = 0; c < 3; c++) { V[i*3+c] = V[i*3+c]*step + pt_ref_sub[c] + pt_ref[c]; }
+                }
+            }   
+        }   
+    }
+
+
+  }
 }
