@@ -131,15 +131,41 @@ void OctreeParser::node_normal(float* n, int id, int depth) const {
   }
 }
 
+void OctreeParser::print_feature(int id, int depth) const {
+  int num = info_->node_num(depth);
+  const float* feature_d = feature_cpu(depth);
+  int ch = info_->channel(OctreeInfo::kFeature);
+
+  std::cout << "f:";
+  for (int c = 0; c < ch; ++c) { std::cout << ", " <<  feature_d[c * num + id]; }
+  std::cout << std::endl;
+}
+
+
 void OctreeParser::node_slim_coefficients(float* coefs, int id, int depth) const {
   int num = info_->node_num(depth);
   const float* feature_d = feature_cpu(depth);
   int loc = info_->locations(OctreeInfo::kFeature);
   int ch = info_->channel(OctreeInfo::kFeature);
+
+
   if ((loc == -1 || loc == depth) && ch >= 3) {
-    for (int c = 0; c < 10; ++c) { coefs[c] = feature_d[(c+3) * num + id]; }
+    for (int c = 0; c < 6; ++c) { coefs[c] = feature_d[(c+3) * num + id]; }
   } else {
-    for (int c = 0; c < 10; ++c) { coefs[c] = 0; }
+    for (int c = 0; c < 6; ++c) { coefs[c] = 0; }
+  }
+}
+
+void OctreeParser::node_dis_xyz(float* dis, int id, int depth) const {
+  int num = info_->node_num(depth);
+  const float* feature_d = feature_cpu(depth);
+  int loc = info_->locations(OctreeInfo::kFeature);
+  int ch = info_->channel(OctreeInfo::kFeature);
+
+  if ((loc == -1 || loc == depth) && ch >= 4) {
+    for (int c = 0; c < 3; c++) {
+      dis[c] = feature_d[(ch-3+c) * num + id];
+    }
   }
 }
 

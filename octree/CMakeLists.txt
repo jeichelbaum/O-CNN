@@ -91,6 +91,11 @@ include_directories("${PROJECT_SOURCE_DIR}/octree")
 include_directories("${PROJECT_SOURCE_DIR}/viewer")
 include_directories("${PROJECT_SOURCE_DIR}/scanner")
 
+# include Point Cloud Library
+find_package( PCL REQUIRED )
+include_directories( ${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 # add the octree lib
 add_library(octree_lib ${src_octree_lib})
@@ -106,10 +111,15 @@ foreach(source ${srcs})
   if(name MATCHES "build_octree") 
     set(name "octree") 
   endif()
-  add_executable(${name} ${source})
-  target_link_libraries(${name} octree_lib)
-  set_target_properties(${name} PROPERTIES FOLDER "tools")
+
+  set(builds "octree", "octree2mesh")
+  if (name IN_LIST builds)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} octree_lib ${PCL_LIBRARIES})
+    set_target_properties(${name} PROPERTIES FOLDER "tools")
+  endif()
 endforeach(source)
+
 
 
 # add the python interface

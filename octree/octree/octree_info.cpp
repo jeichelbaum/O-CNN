@@ -48,7 +48,7 @@ void OctreeInfo::initialize(int depth, int full_depth, bool node_displacement,
     channel += 3; // save the average points as features
   }
   if (has_implicit()) {
-    channel += 10;
+    channel += 10; // channel settings still weird to me
   }
 
   set_channel(OctreeInfo::kFeature, channel);
