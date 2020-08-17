@@ -44,12 +44,17 @@ void OctreeInfo::initialize(int depth, int full_depth, bool node_displacement,
     // octree node (3 channels) are saved replacing normal
     if (pt_info.channel(PointsInfo::kNormal) == 0) channel += 3;
   }
+
   if (save_pts) {
     channel += 3; // save the average points as features
   }
+
   if (has_implicit()) {
-    channel += 10; // channel settings still weird to me
+    channel += 8; // channel settings still weird to me
   }
+
+  // HARD CODED HACK
+  channel = 12; // surface normal (3), slim2 (6), surface center (3)
 
   set_channel(OctreeInfo::kFeature, channel);
   // location = -1 means the features exist on every node

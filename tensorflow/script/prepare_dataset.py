@@ -67,7 +67,8 @@ def m40_move_files(src_folder, des_folder, suffix):
                     os.path.join(curr_des_folder, filename))
 
 
-def m40_convert_mesh_to_points(root_folder='dataset/ModelNet40'):
+def m40_convert_mesh_to_points(root_folder='/media/jeri/DATA/dev/datasets/ModelNet40'):
+#def m40_convert_mesh_to_points(root_folder='dataset/ModelNet40'):
   root_folder = os.path.join(abs_path, root_folder)
   # Delete 3 files since the virtualscanner can not well deal with them
   filelist = ['cone/train/cone_0117.off', 
@@ -90,7 +91,7 @@ def m40_convert_mesh_to_points(root_folder='dataset/ModelNet40'):
   for folder in folders:
     for subfolder in ['train', 'test']:
       curr_folder = os.path.join(root_folder, folder, subfolder)
-      cmd = '%s %s 14' % (virtual_scanner,  curr_folder)
+      cmd = 'sudo %s %s 14' % (virtual_scanner,  curr_folder)
       print(cmd)
       os.system(cmd)
       

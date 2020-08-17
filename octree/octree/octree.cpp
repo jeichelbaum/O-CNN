@@ -551,6 +551,8 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
   helper.init_parent_approx_tracking(oct_info_.depth());
 
   // ----------------------
+
+  float ERROR_THRESHOLD = oct_info_.threshold_distance();
    
   const int depth_max = oct_info_.depth();
   const int depth_adp = oct_info_.adaptive_layer();
@@ -560,7 +562,7 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
   const float* pts_normals = point_cloud.ptr(PointsInfo::kNormal);  // hard coded channel sizes
 
   const int channel_pt = 3;
-  const int channel_normal = 11;
+  const int channel_normal = 9;
   const int channel_dis = 3;
  
   // allocate array mem
@@ -613,7 +615,6 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
       }
 
       // approximate surface and measure error
-      float ERROR_THRESHOLD = 0.8;
       Vector3f cell_base = { xyz[0] * scale, xyz[1] * scale, xyz[2] * scale };
       Vector3f cell_center = cell_base + 0.5*Vector3f(scale, scale, scale);
       bool well_approx = helper.approx_surface(cell_base, scale, radius, ERROR_THRESHOLD);
@@ -645,10 +646,7 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
           normal_d[(c+3) * nnum_d + i] = helper.surf_coefs(c, 0);
           //normal_d[(c+3) * nnum_d + i] = 1.1+c*0.1;
         }
-      } else {
-        normal_err_d[i] = distance_err_d[i] = numeric_limits<float>::max();
-      }
-
+      } 
 
     }
   }
@@ -1729,7 +1727,7 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
       for (int c = 0; c < 6; ++c) {
         surf_coefs(c,0) = coef[c];
       }
-
+      
       // render surface
       polynomial2::sample_surface_along_normal_rt(&V, &F, cell_base, cube_size, 25, surf_center, surf_normal, surf_coefs);
 
