@@ -537,17 +537,18 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
 
   // rescale points to octree bounding box
   const float* bbmin = oct_info_.bbmin();
-  float* pts = point_cloud.mutable_points();
   const float mul = float(1 << oct_info_.depth()) / oct_info_.bbox_max_width();
 
+  /*
+  float* pts = point_cloud.mutable_points();
   for (std::size_t i = 0; i < point_cloud.info().pt_num(); ++i) {
     for (int j = 0; j < 3; j++) {
       pts[i*3 + j] = (pts[i*3 + j] - bbmin[j]) * mul;
     }
-  }
+  }*/
 
   // construct poly helper
-  Polynomial2Approx helper(point_cloud);
+  Polynomial2Approx helper(point_cloud, bbmin, mul);
   helper.init_parent_approx_tracking(oct_info_.depth());
 
   // ----------------------

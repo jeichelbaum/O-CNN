@@ -208,7 +208,7 @@ float polynomial2::calc_avg_distance_to_surface_rt(MatrixXf points, MatrixXf nor
 
 
 
-Polynomial2Approx::Polynomial2Approx (Points& point_cloud) {
+Polynomial2Approx::Polynomial2Approx (Points& point_cloud, const float* bbmin, const float mul) {
     // store ref to source points and normals
     this->pts = point_cloud;
 
@@ -221,10 +221,9 @@ Polynomial2Approx::Polynomial2Approx (Points& point_cloud) {
     // copy points into point cloud
     for (std::size_t i = 0; i < cloud->size (); ++i)
     {
-        int i3 = i*3;
-        (*cloud)[i].x = pts.points()[i*3+0];
-        (*cloud)[i].y = pts.points()[i*3+1];
-        (*cloud)[i].z = pts.points()[i*3+2];
+        (*cloud)[i].x = (pts.points()[i*3+0] - bbmin[0]) * mul;
+        (*cloud)[i].y = (pts.points()[i*3+1] - bbmin[1]) * mul;
+        (*cloud)[i].z = (pts.points()[i*3+2] - bbmin[2]) * mul;
     }
 
     // populate octree
@@ -302,8 +301,13 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         Eigen::MatrixXf points = Eigen::MatrixXf::Zero(npt, 3);
         Eigen::MatrixXf normals = Eigen::MatrixXf::Zero(npt, 3);
         for (int p = 0; p < npt; p++) {
+
+            points(p, 0) = (*cloud)[pointIdxRadiusSearch[p]].x;
+            points(p, 1) = (*cloud)[pointIdxRadiusSearch[p]].y;
+            points(p, 2) = (*cloud)[pointIdxRadiusSearch[p]].z;
+
             for (int j=0; j<3; j++) {
-                points(p, j) = pts.points()[pointIdxRadiusSearch[p]*3+j];
+                //points(p, j) = pts.points()[pointIdxRadiusSearch[p]*3+j];
                 normals(p, j) = pts.normal()[pointIdxRadiusSearch[p]*3+j];
             }
         }
@@ -338,7 +342,8 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         Eigen::MatrixXf bf = ((w.transpose().array() * points.col(2).transpose().array()).matrix() * b).transpose(); 
 
         // invert to get surface coefficients
-        surf_coefs = B.inverse() * bf;
+        //surf_coefs = B.inverse() * bf;          // never invert matrices
+        surf_coefs = B.colPivHouseholderQr().solve(bf);
 
         // ----------- ERROR: SURF -> POINTS
         

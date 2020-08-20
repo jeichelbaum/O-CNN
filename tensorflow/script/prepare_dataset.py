@@ -104,6 +104,7 @@ def m40_convert_points_to_octree(root_folder, depth=5, adaptive=0, node_dis=0):
   for folder in folders:
     for subfolder in ['train', 'test']:
       curr_folder = os.path.join(root_folder, folder, subfolder)      
+
       # write filelist to disk
       filenames = os.listdir(curr_folder)
       filelist_name = os.path.join(curr_folder, 'list.txt')
@@ -115,11 +116,14 @@ def m40_convert_points_to_octree(root_folder, depth=5, adaptive=0, node_dis=0):
       octree_folder = root_folder[:-6] + 'octree.%d' % depth
       if adaptive == 1: octree_folder = octree_folder + '.adaptive'
       output_path = os.path.join(octree_folder, folder, subfolder)
-      if not os.path.exists(output_path): os.makedirs(output_path)
-      cmd = '%s --filenames %s --output_path %s --depth %d --adaptive %d --node_dis %d --axis z --split_label 1' % \
-            (octree, filelist_name, output_path, depth, adaptive, node_dis)
-      print(cmd)
-      os.system(cmd)
+      if not os.path.exists(output_path): 
+        os.makedirs(output_path)
+        cmd = '%s --filenames %s --output_path %s --depth %d --adaptive %d --node_dis %d --axis z --split_label 1 --th_distance 0.7' % \
+              (octree, filelist_name, output_path, depth, adaptive, node_dis)
+        print(cmd)
+        os.system(cmd)
+      else:
+        print("SKIPPINNNNGG:", output_path)
 
 
 def m40_simplify_points(root_folder='dataset/ModelNet40.points', resolution=64):
@@ -213,10 +217,12 @@ def m40_generate_ocnn_points_tfrecords():
     os.system(cmd)
 
 
-def m40_generate_ocnn_octree_tfrecords(depth=3):
+def m40_generate_ocnn_octree_tfrecords(depth=6):
   # generate octree
   root_folder =  os.path.join(abs_path, 'dataset')
+  root_folder = "/media/jeri/DATA/dev/datasets"
   points_folder = os.path.join(root_folder, 'ModelNet40.points')
+  points_folder = os.path.join(root_folder, 'ModelNet40.scan_dense_points')
   m40_convert_points_to_octree(points_folder, depth, adaptive=1, node_dis=1)
 
   # generate tfrecords

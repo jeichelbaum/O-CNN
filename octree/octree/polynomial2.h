@@ -50,7 +50,7 @@ class polynomial2 {
 
 class Polynomial2Approx {
     public:
-        Polynomial2Approx(Points& point_cloud);
+        Polynomial2Approx(Points& point_cloud, const float* bbmin, const float mul);
 
         void init_parent_approx_tracking(int depth_max_);
         void set_well_approximated(int cur_depth, int* xyz);

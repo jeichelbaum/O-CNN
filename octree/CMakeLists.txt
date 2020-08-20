@@ -6,7 +6,7 @@ option(USE_WINDOWS_IO "Use the header io.h provided by Windows" OFF)
 option(USE_CUDA "CPU only, without CUDA" ON)
 option(USE_PYTHON "Build the python interface with pybind11" ON)
 option(USE_GLOG "Use glog" OFF)
-option(USE_OPENMP "Use OpenMP for speed up" OFF)
+option(USE_OPENMP "Use OpenMP for speed up" ON)
 option(USE_RPLY "Use the library rply in the project octree" OFF)
 set(VCPKG "<Set VCPKG path>" CACHE PATH "The VCPKG path, containing glog and gtest")
 
@@ -23,7 +23,7 @@ endif()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # # c++11 Support
-set (CMAKE_CXX_STANDARD 11) 
+set (CMAKE_CXX_STANDARD 14) 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # add target_link_libraries
@@ -120,9 +120,8 @@ foreach(source ${srcs})
   endif()
 endforeach(source)
 
-
-
 # add the python interface
 if(USE_PYTHON)
   add_subdirectory(python)
 endif()
+

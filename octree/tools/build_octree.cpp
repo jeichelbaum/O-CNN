@@ -128,6 +128,8 @@ int main(int argc, char* argv[]) {
 
   #pragma omp parallel for
   for (int i = 0; i < all_files.size(); i++) {
+    printf("th_%d processing file #%d\n", omp_get_thread_num(), i);
+    
     OctreeBuilder builder;
     bool succ = builder.set_point_cloud(all_files[i]);
 
