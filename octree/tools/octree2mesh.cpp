@@ -37,6 +37,7 @@ int main(int argc, char* argv[]) {
   vector<string> all_files;
   get_all_filenames(all_files, file_path);
 
+  #pragma omp parallel for
   for (int i = 0; i < all_files.size(); i++) {
     // get filename
     string filename = extract_filename(all_files[i]);
