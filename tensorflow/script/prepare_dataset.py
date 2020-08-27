@@ -99,7 +99,7 @@ def m40_convert_mesh_to_points(root_folder='/media/jeri/DATA/dev/datasets/ModelN
   m40_move_files(root_folder, root_folder + '.points', 'points')
 
 
-def m40_convert_points_to_octree(root_folder, depth=5, adaptive=0, node_dis=0):
+def m40_convert_points_to_octree(root_folder, depth=5, adaptive=0, node_dis=0, stride=10):
   folders = os.listdir(root_folder)
   for folder in folders:
     for subfolder in ['train', 'test']:
@@ -109,8 +109,8 @@ def m40_convert_points_to_octree(root_folder, depth=5, adaptive=0, node_dis=0):
       filenames = os.listdir(curr_folder)
       filelist_name = os.path.join(curr_folder, 'list.txt')
       with open(filelist_name, 'w') as fid:
-        for filename in filenames:
-          if filename.endswith('.points'):
+        for i, filename in enumerate(filenames):
+          if filename.endswith('.points') and i % stride == 0:
             fid.write(os.path.join(curr_folder, filename) + '\n')
       # run octree
       octree_folder = root_folder[:-6] + 'octree.%d' % depth
@@ -118,7 +118,7 @@ def m40_convert_points_to_octree(root_folder, depth=5, adaptive=0, node_dis=0):
       output_path = os.path.join(octree_folder, folder, subfolder)
       if not os.path.exists(output_path): 
         os.makedirs(output_path)
-        cmd = '%s --filenames %s --output_path %s --depth %d --adaptive %d --node_dis %d --axis z --split_label 1 --th_distance 0.7' % \
+        cmd = '%s --filenames %s --output_path %s --depth %d --adaptive %d --node_dis %d --axis z --split_label 1 --th_normal 0.7 --th_distance 0.7' % \
               (octree, filelist_name, output_path, depth, adaptive, node_dis)
         print(cmd)
         os.system(cmd)
@@ -230,8 +230,8 @@ def m40_generate_ocnn_octree_tfrecords(depth=6):
   # generate tfrecords
   octree_folder = os.path.join(root_folder, 'ModelNet40.octree.%d.adaptive' % depth)
   octree_folder = os.path.join(root_folder, 'ModelNet40_points/%s' % octree_folder_name)
-  for folder in ['train', 'test']:
-  #for folder in ['test']:
+  #for folder in ['train', 'test']:
+  for folder in ['test']:
     train = folder == 'train'
     #shuffle = '--shuffle true' if folder == 'train' else ''
     shuffle = '--shuffle true'

@@ -4,22 +4,22 @@ SOLVER:
   run: train
   max_iter: 320000
   test_iter: 248
-  test_every_iter: 500
+  test_every_iter: 600
   step_size: (80000,)
 
 DATA:
   train:
     dtype: octree
     depth: 6
-    location: dataset/m40_6_2_12_train_octree.tfrecords 
-    batch_size: 16
+    location: dataset/m40_scanoctree.6.adaptive_train.tfrecords 
+    batch_size: 6
     x_alias: data # be careful with this parameter
   test: 
     dtype: octree
     depth: 6
-    location: dataset/m40_6_2_12_test_octree.tfrecords 
+    location: dataset/m40_scanoctree.6.adaptive_train.tfrecords 
     shuffle: 0
-    batch_size: 16
+    batch_size: 6
     x_alias: data # be careful with this parameter
 
 MODEL:

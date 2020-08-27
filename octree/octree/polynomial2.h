@@ -59,6 +59,8 @@ class Polynomial2Approx {
         bool approx_surface(Vector3f cell_base, float cell_size, float support_radius, float error_threshold);
 
         int npt;
+        const int THRESHOLD_MIN_NUM_POINTS = 6;
+
         Vector3f surf_center;
         Vector3f surf_normal;
         MatrixXf surf_coefs;
@@ -67,7 +69,6 @@ class Polynomial2Approx {
         float error_max_surface_points_dist;
 
     private:
-        int THRESHOLD_MIN_NUM_POINTS = 6;
         int SURFACE_SAMPLING_RESOLUTION = 5;
 
         Points pts;

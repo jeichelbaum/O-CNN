@@ -4,13 +4,13 @@ SOLVER:
   ckpt: logs/ae/aocnn6_slim2_070/model/iter_320000.ckpt
   run: decode_shape
   max_iter: 320000
-  test_iter: 2000
+  test_iter: 100
 
 DATA:
   test: 
     dtype: octree
     depth: 6
-    location: dataset/m40_6_2_12_test_octree.tfrecords
+    location: dataset/m40_scanoctree.6.adaptive_test.tfrecords
     shuffle: 0
     batch_size: 1
     x_alias: data # be careful with this parameter

@@ -345,8 +345,14 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         //surf_coefs = B.inverse() * bf;          // never invert matrices
         surf_coefs = B.colPivHouseholderQr().solve(bf);
 
-        // ----------- ERROR: SURF -> POINTS
+        // skip error calculation for last layer
+        if (cell_size == 1.0) {
+            error_avg_points_surface_dist = 0.0;
+            error_max_surface_points_dist = 0.0;
+            return true;
+        }
         
+        // ----------- ERROR: SURF -> POINTS
         // sample surface within octree cell
         vector<float> surf_edge_samples;
         polynomial2::sample_surface_along_normal_rt(&surf_edge_samples, NULL, cell_base, cell_size, SURFACE_SAMPLING_RESOLUTION, surf_center, surf_normal, surf_coefs);
