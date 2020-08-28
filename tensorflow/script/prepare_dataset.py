@@ -99,7 +99,7 @@ def m40_convert_mesh_to_points(root_folder='/media/jeri/DATA/dev/datasets/ModelN
   m40_move_files(root_folder, root_folder + '.points', 'points')
 
 
-def m40_convert_points_to_octree(root_folder, depth=5, adaptive=0, node_dis=0, stride=10):
+def m40_convert_points_to_octree(root_folder, depth=5, adaptive=0, node_dis=0, stride=20):
   folders = os.listdir(root_folder)
   for folder in folders:
     for subfolder in ['train', 'test']:
@@ -217,7 +217,7 @@ def m40_generate_ocnn_points_tfrecords():
     os.system(cmd)
 
 
-def m40_generate_ocnn_octree_tfrecords(depth=6):
+def m40_generate_ocnn_octree_tfrecords(depth=5):
   # generate octree
   root_folder =  os.path.join(abs_path, 'dataset')
   root_folder = "/media/jeri/DATA/dev/datasets"
@@ -230,8 +230,8 @@ def m40_generate_ocnn_octree_tfrecords(depth=6):
   # generate tfrecords
   octree_folder = os.path.join(root_folder, 'ModelNet40.octree.%d.adaptive' % depth)
   octree_folder = os.path.join(root_folder, 'ModelNet40_points/%s' % octree_folder_name)
-  #for folder in ['train', 'test']:
-  for folder in ['test']:
+  for folder in ['train', 'test']:
+  #for folder in ['test']:
     train = folder == 'train'
     #shuffle = '--shuffle true' if folder == 'train' else ''
     shuffle = '--shuffle true'
