@@ -7,7 +7,7 @@ layer {
     phase: TRAIN
   }
   data_param {
-    source: "train_7_2_adp4_aug_upgrade"
+    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/baseline/train_aug"
     batch_size: 1
     backend: LMDB
   }
@@ -25,7 +25,7 @@ layer {
     phase: TEST
   }
   data_param {
-    source: "test_7_2_adp4_aug_upgrade"
+    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/baseline/test"
     batch_size: 1
     backend: LMDB
   }

@@ -141,8 +141,8 @@ int main(int argc, char* argv[]) {
   }
 
   vector<string> all_files_a, all_files_b;
-  get_all_filenames(all_files_a, FLAGS_path_a + "/*.points");
-  get_all_filenames(all_files_b, FLAGS_path_b + "/*.points");
+  get_all_filenames(all_files_a, FLAGS_path_a);
+  get_all_filenames(all_files_b, FLAGS_path_b);
   std::cout << "File number a: " << all_files_a.size() << std::endl;
   std::cout << "File number b: " << all_files_a.size() << std::endl;
 
