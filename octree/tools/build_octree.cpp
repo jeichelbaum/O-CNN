@@ -149,15 +149,19 @@ int main(int argc, char* argv[]) {
 
     if (FLAGS_verbose) cout << "Processing: " + filename + "\n";
     for (int v = 0; v < FLAGS_rot_num; ++v) {
-      // output filename
-      char file_suffix[64];
-      sprintf(file_suffix, "_%d_%d_%03d.octree", FLAGS_depth, FLAGS_full_depth, v);
 
-      // build
-      builder.build_octree();
+      // auto encoder only requires rotation 0, 1, 11
+      if (v == 0 || v == 1 || v == 11) {
+        // output filename
+        char file_suffix[64];
+        sprintf(file_suffix, "_%d_%d_%03d.octree", FLAGS_depth, FLAGS_full_depth, v);
 
-      // save octree
-      builder.save_octree(output_path + filename + file_suffix);
+        // build
+        builder.build_octree();
+
+        // save octree
+        builder.save_octree(output_path + filename + file_suffix);
+      }
 
       // rotate point for the next iteration
       builder.point_cloud_.rotate(angle, axis);
