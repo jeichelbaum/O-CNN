@@ -10,9 +10,9 @@ convert_ply = False
 generate_octree = True
 
 print('Please properly configure the following 5 variables')
-root_img = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_renders/%s' % dataset_name
 root_pc = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/%s' % dataset_name
-root_lmdb = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/%s' % dataset_name
+root_img = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_renders/%s' % dataset_name
+root_lmdb = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/%s' % dataset_name
 root_octree = '/home/jeri/dev/O-CNN/octree/build'
 root_caffe = '/home/jeri/dev/caffe-official/build/install/bin'
 
@@ -23,9 +23,9 @@ convert_octree = os.path.join(root_caffe, 'convert_octree_data')
 convert_image = os.path.join(root_caffe, 'convert_imageset')
 
 category = [
-  '02691156',
-  '02828884',
-  '02933112',
+  #'02691156',
+  #'02828884',
+  #'02933112',
   '02958343',
   '03001627', 
   '03211117',

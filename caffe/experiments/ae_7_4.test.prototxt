@@ -7,13 +7,13 @@ layer {
     phase: TRAIN
   }
   data_param {
-    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/baseline/train_aug"
+    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_quad2/train_aug"
     batch_size: 1
     backend: LMDB
   }
   octree_param {
     curr_depth: 7
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -25,13 +25,13 @@ layer {
     phase: TEST
   }
   data_param {
-    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/baseline/test"
+    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_quad2/test"
     batch_size: 1
     backend: LMDB
   }
   octree_param {
     curr_depth: 7
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -41,7 +41,7 @@ layer {
   octree_param {
     curr_depth: 4
     content_flag: 'feature'
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -90,7 +90,7 @@ layer {
   octree_param {
     curr_depth: 5
     content_flag: 'feature'
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -139,7 +139,7 @@ layer {
   octree_param {
     curr_depth: 6
     content_flag: 'feature'
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
