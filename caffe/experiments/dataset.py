@@ -7,12 +7,12 @@ dataset_name = 'baseline'
 
 process_img = False
 convert_ply = False
-generate_octree = False
+generate_octree = True
 
 print('Please properly configure the following 5 variables')
 root_img = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_renders/%s' % dataset_name
 root_pc = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/%s' % dataset_name
-root_lmdb = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/%s' % dataset_name
+root_lmdb = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/%s' % dataset_name
 root_octree = '/home/jeri/dev/O-CNN/octree/build'
 root_caffe = '/home/jeri/dev/caffe-official/build/install/bin'
 
@@ -87,7 +87,7 @@ for i in range(0, len(category)):
     subprocess.check_call(
       [octree, '--filenames', filename_list, '--output_path', path_octree, 
       '--adp_depth', '4', '--depth', '7',
-      '--adaptive', '1', '--th_distance', '2', '--th_normal', '0.1', 
+      '--adaptive', '1', '--th_distance', '0.7', '--th_normal', '0.7', 
       '--node_dis', '1', '--split_label', '1']
     )
 
@@ -101,7 +101,7 @@ if not os.path.exists(path_datalist):
 
 # generate datalist for octree
 filename_oct_train = os.path.join(path_datalist, 'oct_train.txt')
-#file_oct_train = open(filename_oct_train, 'w')
+file_oct_train = open(filename_oct_train, 'w')
 filename_oct_train_aug = os.path.join(path_datalist, 'oct_train_aug.txt')
 file_oct_train_aug = open(filename_oct_train_aug, 'w')
 filename_oct_test = os.path.join(path_datalist, 'oct_test.txt')
@@ -129,7 +129,7 @@ for i in range(0, len(category)):
 
   for item in filename[:int(len(filename) * 0.8)]:
     pass
-    #file_oct_train.write('%s/octree/%s_7_2_000.octree %d\n' % (category[i], item[:-7], i))
+    file_oct_train.write('%s/octree/%s_7_2_000.octree %d\n' % (category[i], item[:-7], i))
 
   for item in filename[int(len(filename) * 0.8):]:
     file_oct_test.write('%s/octree/%s_7_2_000.octree %d\n' % (category[i], item[:-7], i))
@@ -139,16 +139,16 @@ for i in range(0, len(category)):
     file_oct_train_aug.write('%s/octree/%s_7_2_001.octree %d\n' % (category[i], item[:-7], i))
     file_oct_train_aug.write('%s/octree/%s_7_2_011.octree %d\n' % (category[i], item[:-7], i))
 
-#file_oct_train.close()
+file_oct_train.close()
 file_oct_test.close()
 file_oct_train_aug.close()
 
 print('Generate octree lmdb ...')
 # generate lmdb for octree
 # print(
-#subprocess.check_call(
-#  [convert_octree, root_pc+'/', filename_oct_train, root_lmdb+'/oct_train_lmdb']
-#)
+subprocess.check_call(
+  [convert_octree, root_pc+'/', filename_oct_train, root_lmdb+'/oct_train_lmdb']
+)
 # print(
 subprocess.check_call(
   [convert_octree, root_pc+'/', filename_oct_train_aug, root_lmdb+'/oct_train_aug_lmdb']
