@@ -118,12 +118,12 @@ void Octree::build(const OctreeInfo& octree_info, Points& point_cloud) {
   }
 
   // generate split label
-  /*if (oct_info_.has_property(OctreeInfo::kSplit)) {
+  if (oct_info_.has_property(OctreeInfo::kSplit)) {
     calc_split_label();
   }
 
   // extrapolate node feature
-  if (oct_info_.extrapolate() && oct_info_.locations(OctreeInfo::kFeature) == -1) {
+  /*if (oct_info_.extrapolate() && oct_info_.locations(OctreeInfo::kFeature) == -1) {
     extrapolate_signal();
   }*/
 
