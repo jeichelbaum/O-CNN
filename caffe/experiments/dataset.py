@@ -9,6 +9,8 @@ process_img = False
 convert_ply = False
 generate_octree = True
 
+depth = 7
+
 print('Please properly configure the following 5 variables')
 root_pc = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/%s' % dataset_name
 root_img = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_renders/%s' % dataset_name
@@ -23,9 +25,9 @@ convert_octree = os.path.join(root_caffe, 'convert_octree_data')
 convert_image = os.path.join(root_caffe, 'convert_imageset')
 
 category = [
-  #'02691156',
-  #'02828884',
-  #'02933112',
+  '02691156',
+  '02828884',
+  '02933112',
   '02958343',
   '03001627', 
   '03211117',
@@ -36,7 +38,7 @@ category = [
   '04379243',
   '04401088',
   '04530566'
-  ]
+]
 
 
 # generate octree
@@ -77,6 +79,17 @@ for i in range(0, len(category)):
   # generate the datalist for octree.exe
   if generate_octree:
     filename_points = os.listdir(path_points)
+
+    # filter files out that are already processed
+    if os.path.exists(path_octree):
+      filename_octree = os.listdir(path_octree)
+      filename_octree = [f.split("/")[-1].replace("_%d_2_000.octree" % depth, ".points0") for f in filename_octree]
+      filename_octree = [f.split("/")[-1].replace("_%d_2_001.octree" % depth, ".points1") for f in filename_octree]
+      filename_octree = [f.split("/")[-1].replace("_%d_2_011.octree" % depth, ".points11") for f in filename_octree]
+      filename_points = [f for f in filename_points if f+"0" not in filename_octree or f+"1" not in filename_octree or f+"11" not in filename_octree]
+
+    print(category[i], len(filename_points))
+
     filename_list = os.path.join(path_datalist, category[i] + '_points_list.txt')
     with open(filename_list, 'w') as f:
       for item in filename_points:
@@ -86,7 +99,7 @@ for i in range(0, len(category)):
     # print(
     subprocess.check_call(
       [octree, '--filenames', filename_list, '--output_path', path_octree, 
-      '--adp_depth', '4', '--depth', '7',
+      '--adp_depth', '4', '--depth', str(depth),
       '--adaptive', '1', '--th_distance', '0.7', '--th_normal', '0.7', 
       '--node_dis', '1', '--split_label', '1']
     )
