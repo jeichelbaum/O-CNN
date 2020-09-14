@@ -515,10 +515,10 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
       bool well_approx = helper.approx_surface(cell_base, scale, radius, ERROR_THRESHOLD);
 
       // treat as well approx, if next octants would have too few points for approximation
-      /*if (helper.npt <= helper.THRESHOLD_MIN_NUM_POINTS*8) {
+      if (helper.npt <= helper.THRESHOLD_MIN_NUM_POINTS*8) {
         well_approx = true;
         helper.error_avg_points_surface_dist = helper.error_max_surface_points_dist = 0.0;
-      }*/
+      }
 
       // -------------- STORE RESULTS -----------------------
       if (helper.npt >= helper.THRESHOLD_MIN_NUM_POINTS) {
@@ -539,7 +539,7 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
         }
 
         // -------------- ERROR -----------------------
-        if (d <= depth_max) {
+        if (d < depth_max) {
           float max_dist = max(helper.error_avg_points_surface_dist, helper.error_max_surface_points_dist);
           normal_err_d[i] = max_dist;
           distance_err_d[i] = max_dist;
@@ -549,7 +549,6 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
             helper.set_well_approximated(d, xyz);
           } 
         }
-
       }
 
     }
