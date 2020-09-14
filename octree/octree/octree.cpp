@@ -1596,8 +1596,8 @@ void Octree::calc_split_label() {
       if (node_type(children_[d][i]) == kLeaf) {
         split_labels_[d][i] = 0;              // empty node
         if (adaptive) {
-          float t = abs(avg_normals_[d][i]) + abs(avg_normals_[d][nnum_d + i]) +
-              abs(avg_normals_[d][2 * nnum_d + i]);
+          float t = fabsf(avg_normals_[d][i]) + fabsf(avg_normals_[d][nnum_d + i]) +
+              fabsf(avg_normals_[d][2 * nnum_d + i]);
           // todo: t != 0 && has_intersection
           if (t != 0) split_labels_[d][i] = 2; // surface-well-approximated
         }
