@@ -135,6 +135,21 @@ void Octree::build(const OctreeInfo& octree_info, Points& point_cloud) {
   auto stop = high_resolution_clock::now();
   auto duration = duration_cast<microseconds>(stop - start).count(); 
   printf("total time %f\n", float(duration) / 1000000.0);
+
+
+  std::cout << "num well approx:";
+  vector<int> nums;
+  nums.assign(split_labels_.size(), 0);
+  for (int d = 0; d < split_labels_.size(); d++) {
+    for (int j = 0; j < split_labels_[d].size(); j++) {
+      if (split_labels_[d][j] == 2.0) {
+        nums[d]++;
+      }
+    }
+    std::cout << " " << nums[d];
+  }
+  std::cout << std::endl;
+
 }
 
 void Octree::clear(int depth) {
@@ -500,10 +515,10 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
       bool well_approx = helper.approx_surface(cell_base, scale, radius, ERROR_THRESHOLD);
 
       // treat as well approx, if next octants would have too few points for approximation
-      if (helper.npt <= helper.THRESHOLD_MIN_NUM_POINTS*8) {
+      /*if (helper.npt <= helper.THRESHOLD_MIN_NUM_POINTS*8) {
         well_approx = true;
         helper.error_avg_points_surface_dist = helper.error_max_surface_points_dist = 0.0;
-      }
+      }*/
 
       // -------------- STORE RESULTS -----------------------
       if (helper.npt >= helper.THRESHOLD_MIN_NUM_POINTS) {
@@ -524,7 +539,7 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
         }
 
         // -------------- ERROR -----------------------
-        if (d < depth_max) {
+        if (d <= depth_max) {
           float max_dist = max(helper.error_avg_points_surface_dist, helper.error_max_surface_points_dist);
           normal_err_d[i] = max_dist;
           distance_err_d[i] = max_dist;
