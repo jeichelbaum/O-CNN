@@ -136,8 +136,21 @@ void Octree::build(const OctreeInfo& octree_info, Points& point_cloud) {
   auto duration = duration_cast<microseconds>(stop - start).count(); 
   printf("total time %f\n", float(duration) / 1000000.0);
 
+  std::cout << "num leaves:";
 
-  std::cout << "num well approx:";
+  vector<int> leaves;
+  leaves.assign(oct_info_.depth(), 0);
+  for (int d = 0; d < oct_info_.depth(); d++) {
+    int nnum_d = oct_info_.node_num(d);       // initialize as 1 (non-empty, split)
+    for (int i = 0; i < nnum_d; ++i) {
+      if (node_type(children_[d][i]) == kLeaf) {
+        leaves[d]++;
+      }
+    }
+    std::cout << " " << leaves[d];
+  }
+
+  std::cout << " - num split labels:";
   vector<int> nums;
   nums.assign(split_labels_.size(), 0);
   for (int d = 0; d < split_labels_.size(); d++) {
