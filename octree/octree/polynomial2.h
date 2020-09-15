@@ -57,6 +57,7 @@ class Polynomial2Approx {
         bool parent_well_approximated(int cur_depth, int* xyz);
 
         bool approx_surface(Vector3f cell_base, float cell_size, float support_radius, float error_threshold);
+        bool check_coefs();
 
         int npt;
         const int THRESHOLD_MIN_NUM_POINTS = 6;
@@ -70,6 +71,7 @@ class Polynomial2Approx {
 
     private:
         int SURFACE_SAMPLING_RESOLUTION = 5;
+        float COEFS_CLAMP = 10.0;
 
         Points pts;
         pcl::PointCloud<pcl::PointXYZ>* cloud;

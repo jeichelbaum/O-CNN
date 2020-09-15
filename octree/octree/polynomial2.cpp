@@ -344,6 +344,7 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         // invert to get surface coefficients
         //surf_coefs = B.inverse() * bf;          // never invert matrices
         surf_coefs = B.colPivHouseholderQr().solve(bf);
+        if (!check_coefs()) { return false; }     
 
         // skip error calculation for last layer
         if (cell_size == 1.0) {
@@ -385,4 +386,23 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
     }
 
     return false;
+}
+
+// check for NaN or out of clamp surf_coefs
+bool Polynomial2Approx::check_coefs() {
+    bool result_ok = true;
+    for (int c = 0; c < 6; c++) {
+        if (surf_coefs(c, 0) <  -COEFS_CLAMP || COEFS_CLAMP < surf_coefs(c, 0) || surf_coefs(c, 0) != surf_coefs(c, 0)) {
+            result_ok = false;
+        }
+    }    
+
+    // set coefs to zero if result bad
+    if (!result_ok) {
+        for (int c = 0; c < 6; c++) {
+            surf_coefs(c,0) = 0;
+        }
+    }
+
+    return result_ok;
 }
