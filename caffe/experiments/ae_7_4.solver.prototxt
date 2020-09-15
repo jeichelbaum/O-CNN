@@ -35,7 +35,7 @@ max_iter: 350000
 
 # snapshot intermediate results
 snapshot: 2000
-snapshot_prefix: "0922_ae_7_4.train"
+snapshot_prefix: "models/ae74_quad2/ae74.train"
 
 # solver mode: CPU or GPU
 solver_mode: CPU

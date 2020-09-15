@@ -7,13 +7,13 @@ layer {
     phase: TRAIN
   }
   data_param {
-    source: "train_7_2_adp4_aug_upgrade"
+    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_quad2/train"
     batch_size: 1
     backend: LMDB
   }
   octree_param {
     curr_depth: 7
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -25,13 +25,13 @@ layer {
     phase: TEST
   }
   data_param {
-    source: "test_7_2_adp4_aug_upgrade"
+    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_quad2/test"
     batch_size: 1
     backend: LMDB
   }
   octree_param {
     curr_depth: 7
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -41,7 +41,7 @@ layer {
   octree_param {
     curr_depth: 4
     content_flag: 'feature'
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -90,7 +90,7 @@ layer {
   octree_param {
     curr_depth: 5
     content_flag: 'feature'
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -139,7 +139,7 @@ layer {
   octree_param {
     curr_depth: 6
     content_flag: 'feature'
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -1094,7 +1094,7 @@ layer {
   bottom: "Conv7"
   top: "Conv9"
   convolution_param {
-    num_output: 4
+    num_output: 12
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -1324,7 +1324,7 @@ layer {
   bottom: "Conv10"
   top: "Conv12"
   convolution_param {
-    num_output: 4
+    num_output: 12
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -1553,7 +1553,7 @@ layer {
   bottom: "Conv13"
   top: "Conv15"
   convolution_param {
-    num_output: 4
+    num_output: 12
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -1782,7 +1782,7 @@ layer {
   bottom: "Conv16"
   top: "Conv18"
   convolution_param {
-    num_output: 4
+    num_output: 12
     bias_term: true
     kernel_size: 1
     stride: 1
