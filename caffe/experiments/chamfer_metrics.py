@@ -12,15 +12,16 @@ points2obj = "~/dev/implicit_ocnn/build/points2obj"
 chamfer_dist = "~/dev/O-CNN/octree/build/chamfer_distance"
 
 # input 
+dataset = "ae74_quad2_car"
 points_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/baseline/"
-octree_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/2_octree/baseline/"
-filelist_input = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/baseline/oct_test_shuffle.txt"
+octree_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/2_octree/%s/" % dataset
+filelist_input = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/%s/oct_test_shuffle.txt" %dataset
 
 # auto encoder
 depth = 7
 offset = 0.55
 model = "ae_7_4.test.prototxt"
-weights = "ae74.train_iter_350000.caffemodel"
+weights = "ae74.train_iter_228000.caffemodel"
 ae_out_dir = "ae_output/"
 output_dir = os.path.join(os.getcwd(), ae_out_dir)
 
