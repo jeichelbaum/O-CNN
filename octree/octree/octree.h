@@ -56,10 +56,6 @@ class Octree : public OctreeParser {
   void build_structure(vector<uint32>& node_keys);
   void calc_node_num();  // called after the function build_structure()
 
-  void calc_signal(const Points& point_cloud, const vector<float>& pts_scaled,
-      const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
-  void calc_signal(const bool calc_normal_err, const bool calc_dist_err, const vector<float>& pts_scaled, const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
-  
   int get_key_index(const vector<uint32>& key_d, uint32 key);
 
   void calc_signal_implicit(Points& point_cloud, const vector<float>& pts_scaled,
