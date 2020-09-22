@@ -148,11 +148,13 @@ if(USE_PYTHON)
 endif()
 
 # add gtest
-set(gtest_path "${PROJECT_SOURCE_DIR}/external/octree-ext/googletest")
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-add_subdirectory(${gtest_path}  EXCLUDE_FROM_ALL)
-set_target_properties(gtest gtest_main PROPERTIES FOLDER "ext")
+if (FALSE)
+  set(gtest_path "${PROJECT_SOURCE_DIR}/external/octree-ext/googletest")
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  add_subdirectory(${gtest_path}  EXCLUDE_FROM_ALL)
+  set_target_properties(gtest gtest_main PROPERTIES FOLDER "ext")
 
-# add the test
-add_executable(octree_test ${src_test})
-target_link_libraries(octree_test octree_lib gtest gtest_main)
+  # add the test
+  add_executable(octree_test ${src_test})
+  target_link_libraries(octree_test octree_lib gtest gtest_main)
+endif()
