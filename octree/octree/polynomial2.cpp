@@ -1,212 +1,67 @@
 #include "polynomial2.h"
 
-MatrixXf polynomial2::calc_rotation_matrix(Vector3f surf_normal) {
-    Vector3f global_normal = {0, 0, 1};
+#include "marching_cube.h"
 
-    if (surf_normal == global_normal) { return MatrixXf::Identity(3,3); }
-    if (surf_normal == -1*global_normal) { return -1*MatrixXf::Identity(3,3); }
 
-    Vector3f v = surf_normal.cross(global_normal);
-    float s = sqrtf(v.squaredNorm());
-    float c = surf_normal.dot(global_normal);
-
-    MatrixXf v_skew(3, 3);
-    v_skew <<   0, -v(2), v(1),
-                v(2), 0, -v(0),
-                -v(1), v(0), 0;
-
-    MatrixXf R = MatrixXf::Identity(3,3);
-    R += v_skew + v_skew*v_skew * ((1-c) / (s*s));
-    return R;
+float polynomial2::eval_quadric(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs) {
+    auto p = (point - center) / scale;
+    return coefs(0) + coefs(1) * p(0) + coefs(2) * p(1) + coefs(3) * p(2)
+        + coefs(4) * p(0)*p(0) + coefs(5) * p(0)*p(1) + coefs(6) * p(0)*p(2)
+        + coefs(7) * p(1)*p(1) + coefs(8) * p(1)*p(2) + coefs(9) * p(2)*p(2); 
 }
 
-
-
-
-// Roc: Ray origin in surface coordinate system
-// Rrd: Ray direction in surface coordinate system
-// c: surface coefficients
-float polynomial2::surface_intersection_along_normal(Vector3f Roc, Vector3f Rrd, MatrixXf c) {
-    // intersection equation: l^2*x(0) + l*x(1) + x(2)
-     Vector2f x = {
-        c(1)*Rrd(0) + c(2)*Rrd(1) + c(3)*2*Rrd(0)*Roc(0) + c(4)*Rrd(0)*Roc(1) + c(4)*Rrd(1)*Roc(0) + c(5)*2*Rrd(1)*Roc(1) - Rrd(2),
-        c(0) + c(1)*Roc(0) + c(2)*Roc(1) + c(3)*Roc(0)*Roc(0) + c(4)*Roc(0)*Roc(1) + c(5)*Roc(1)*Roc(1) - Roc(2)
-    };
-
-    return (-x(1) / x(0));
-}
-
-// Roc: Ray origin in surface coordinate system
-// Rrd: Ray direction in surface coordinate system
-// c: surface coefficients
-VectorXf polynomial2::surface_ray_intersection(Vector3f Roc, Vector3f Rrd, MatrixXf c) {
-    // intersection equation: l^2*x(0) + l*x(1) + x(2)
-    Vector3f x = {
-        c(3)*Rrd(0)*Rrd(0) + c(4)*Rrd(0)*Rrd(1) + c(5)*Rrd(1)*Rrd(1),
-        c(1)*Rrd(0) + c(2)*Rrd(1) + c(3)*2*Rrd(0)*Roc(0) + c(4)*Rrd(0)*Roc(1) + c(4)*Rrd(1)*Roc(0) + c(5)*2*Rrd(1)*Roc(1) - Rrd(2),
-        c(0) + c(1)*Roc(0) + c(2)*Roc(1) + c(3)*Roc(0)*Roc(0) + c(4)*Roc(0)*Roc(1) + c(5)*Roc(1)*Roc(1) - Roc(2)
-    };
-
-
-    // solve linear
-    if (x(0) == 0) {
-        if (x(1) != 0) {    // 1 intersection
-            VectorXf res(1);
-            res << (-x(2) / x(1));
-            return res;
-        }                   // 0 intersection
-    }
-    // solve quadratic
-    else {
-        float b24ac = x(1) * x(1) - 4 * x(0) * x(2);
-        if (b24ac >= 0) {   // 2 intersection
-            VectorXf res(2);
-            res <<  (-x(1) + sqrtf(b24ac)) / (2*x(0)),
-                    (-x(1) - sqrtf(b24ac)) / (2*x(0));
-            return res;
-        }                   // 0 intersection
-    }
-
-    return VectorXf(0);
-}
-
-
-void polynomial2::sample_surface_along_normal_rt(vector<float>* samples, vector<int>* faces, Vector3f cube_base, float cube_size, int resolution, Vector3f surf_center, Vector3f surf_normal, MatrixXf surf_coefs) 
+void polynomial2::visualize_quadric(vector<float>* verts, vector<int>* faces, Eigen::Vector3f base, float size, int n_sub,
+    Eigen::Vector3f quadric_center, Eigen::VectorXf quadric_coefs)     
 {
-    auto steps = VectorXf::LinSpaced(resolution, -0.5*cube_size, 0.5*cube_size);
-    auto R = polynomial2::calc_rotation_matrix(surf_normal);
-    Vector3f axis1 = R.inverse() * MatrixXf::Identity(3,3).row(0).transpose();
-    Vector3f axis2 = R.inverse() * MatrixXf::Identity(3,3).row(1).transpose();
-    Vector3f ray_dir = -surf_normal;
+    float step = size / float(n_sub);
+    float pt_ref[3] = {0};
 
-    Vector3f cell_center = cube_base + 0.5*Vector3f(cube_size, cube_size, cube_size);
+    // compute function value for corners
+    for (int x = 0; x < n_sub; x++) {
+        pt_ref[0] = base(0) + x * step;
+        for (int y = 0; y < n_sub; y++) {
+            pt_ref[1] = base(1) + y * step;
+            for (int z = 0; z < n_sub; z++) {
+                pt_ref[2] = base(2) + z * step;
 
-    int vi = samples->size()/3+1;
-    MatrixXf vidx = MatrixXf::Zero(resolution, resolution);
-
-    Vector3f pos = Vector3f::Zero();
-    for (int s1 = 0; s1 < resolution; s1++) {
-        for (int s2 = 0; s2 < resolution; s2++) {
-            pos = cell_center + steps[s1]*axis1 + steps[s2]*axis2;
-            auto Roc = R * (pos - surf_center);
-            auto Rrd = R * ray_dir;
-            auto roots = surface_intersection_along_normal(Roc, Rrd, surf_coefs);
-            pos = pos + roots*ray_dir;
-
-            // in cell
-            if (cube_base(0) <= pos(0) && pos(0) <= cube_base(0) + cube_size
-                && cube_base(1) <= pos(1) && pos(1) <= cube_base(1) + cube_size
-                && cube_base(2) <= pos(2) && pos(2) <= cube_base(2) + cube_size) {
-                    for (int c=0;c<3;c++) { samples->push_back(pos(c)); }
-
-                    // ------------ ADD FACES
-                    vidx(s1, s2) = vi;
-                    vi++;
-
-                    if (faces != NULL && s1 > 0 && s2 > 0) {
-                        if (vidx(s1, s2-1) != 0 && vidx(s1-1, s2-1) != 0) {
-                            faces->push_back(vidx(s1, s2));
-                            faces->push_back(vidx(s1-1, s2-1));
-                            faces->push_back(vidx(s1, s2-1));
-                        }
-
-                        if (vidx(s1-1, s2) != 0 && vidx(s1-1, s2-1) != 0) {
-                            faces->push_back(vidx(s1, s2));
-                            faces->push_back(vidx(s1-1, s2));
-                            faces->push_back(vidx(s1-1, s2-1));
-                        }
+                Eigen::Vector3f p;
+                float fval[8] = {0};
+                for (int k = 0; k < 8; ++k) {
+                    for (int j = 0; j < 3; ++j) {
+                        p(j) = MarchingCube::corner_[k][j] * step + pt_ref[j];
                     }
-            }
-        }
-    }
-}
 
-void polynomial2::sample_surface(vector<float>* samples, Vector3f cell_base, float cell_size, int resolution, 
-        Vector3f surf_center, Vector3f surf_normal, MatrixXf surf_coefs)
-{
-    auto R = calc_rotation_matrix(surf_normal);
-    auto Rinv = R.inverse();
-    Vector3f axis1 = Vector3f(1.0, 0, 0);
-    Vector3f axis2 = Vector3f(0, 1.0, 0);
-
-    int npt = 0;
-    samples->resize(3*resolution*resolution);
-    auto steps = VectorXf::LinSpaced(resolution, -0.5*cell_size, 0.5*cell_size);
-
-    for (int i1 = 0; i1 < resolution; i1++) {
-        for (int i2 = 0; i2 < resolution; i2++) {
-            Vector3f point = steps[i1]*axis1 + steps[i2]*axis2;
-            point(2) = surf_coefs(0) + surf_coefs(1)*point(0) + surf_coefs(2)*point(1) + 
-                    surf_coefs(3)*point(0)*point(0) + surf_coefs(4)*point(0)*point(1) + surf_coefs(5)*point(1)*point(1);
-            point = Rinv * point + surf_center;
-
-            for (int c=0; c<3; c++) { 
-                (*samples)[npt*3+c] = point(c);
-            }
-            npt++;
-        }
-    }
-}
-
-
-
-
-/*void polynomial2::sample_surface_rt(vector<float>* samples, Vector3f cube_base, float cube_size, int resolution, Vector3f surf_center, MatrixXf R, MatrixXf surf_coefs) 
-{
-    // SAMPLE TOP CUBE FACE
-    for (int face = 0; face < 1; face++) {
-        auto steps = VectorXf::LinSpaced(resolution, 0, cube_size);
-        Vector3f axis1 = MatrixXf::Identity(3,3).row((face+0) % 3);
-        Vector3f axis2 = MatrixXf::Identity(3,3).row((face+1) % 3);
-        Vector3f ray_dir = MatrixXf::Identity(3,3).row((face+2) % 3);
-        auto Rrd = R*ray_dir;
-
-        Vector3f pos = Vector3f::Zero();
-        for (int s1 = 0; s1 < resolution; s1++) {
-            for (int s2 = 0; s2 < resolution; s2++) {
-                pos = cube_base + steps[s1]*axis1 + steps[s2]*axis2;
-
-                for (int c=0;c<3;c++) { samples->push_back(pos(c)); }
-
-                auto Roc = R * (pos - surf_center);
-                auto roots = surface_ray_intersection(Roc, Rrd, surf_coefs);
-                for (int r = 0; r < roots.rows(); r++) {
-                    pos = pos + ray_dir*roots(r); // intersection point in real world coords
-
-                    // if in cube then push back
-                    if (cube_base(0) <= pos(0) && pos(0) <= cube_base(0) + cube_size
-                        && cube_base(1) <= pos(1) && pos(1) <= cube_base(1) + cube_size
-                        && cube_base(2) <= pos(2) && pos(2) <= cube_base(2) + cube_size) {
-                        samples->push_back(pos(0));
-                        samples->push_back(pos(1));
-                        samples->push_back(pos(2));
-                    }
+                    // calcualate function value for imp3
+                    fval[k] = polynomial2::eval_quadric(p, quadric_center, size, quadric_coefs);
                 }
-        }
-        }
+
+                // marching cube
+                int vid = verts->size() / 3;
+                float ref[3] = {0,0,0};
+                MarchingCube mcube(fval, 0, ref, vid);
+                mcube.contouring(*verts, *faces);
+                for (int i = vid; i < verts->size() / 3; i++) {
+                    for (int c = 0; c < 3; c++) { (*verts)[i*3+c] = (*verts)[i*3+c]*step + pt_ref[c]; }
+                }
+            }   
+        }   
     }
-}*/
-
-
-
-// points (Nx3):    in surface coordinates
-// normals (Nx3):   in surface orientation
-// coefs (6x1):     surface coefficients 
-float polynomial2::calc_avg_distance_to_surface_rt(MatrixXf points, MatrixXf normals, MatrixXf coefs) 
-{
-    int num = 0;
-    float dist = 0;
-    for (int i = 0; i < points.rows(); i++) {
-        auto intersects = surface_ray_intersection(points.row(i), normals.row(i), coefs); 
-        if (intersects.rows() > 0) {
-            dist += intersects.array().abs().minCoeff();
-            num++;  
-        }
-    }
-    return dist / num;
 }
 
 
+float polynomial2::calc_taubin_dist(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs)
+{
+    auto p = (point - center) / scale;
+    float val = polynomial2::eval_quadric(point, center, scale, coefs);
+
+    Eigen::Vector3f grad = Eigen::Vector3f(
+        coefs(1) + 2*coefs(4)*p(0) + coefs(5)*p(1) + coefs(6)*p(2),
+        coefs(2) + coefs(5)*p(0) + 2*coefs(7)*p(1) + coefs(8)*p(2),
+        coefs(3) + coefs(6)*p(0) + coefs(8)*p(1) + 2*coefs(9)*p(2)
+    );
+
+    return fabs(val) / grad.norm();
+}
 
 Polynomial2Approx::Polynomial2Approx (Points& point_cloud, const float* bbmin, const float mul) {
     // store ref to source points and normals
@@ -307,42 +162,85 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
             points(p, 2) = (*cloud)[pointIdxRadiusSearch[p]].z;
 
             for (int j=0; j<3; j++) {
-                //points(p, j) = pts.points()[pointIdxRadiusSearch[p]*3+j];
                 normals(p, j) = pts.normal()[pointIdxRadiusSearch[p]*3+j];
             }
         }
 
-        // ----------- APPROX
 
-        // calc avg point, avg normal and rotation matrix
-        surf_center = points.colwise().sum() / npt;
-        surf_normal = (normals.colwise().sum()).normalized();
-        Eigen::MatrixXf R = polynomial2::calc_rotation_matrix(surf_normal);
-
-        // transform points and normals into surface coordinate system
-        points = (R * (points.transpose().colwise() - surf_center)).transpose();
-        normals = (R * normals.transpose()).transpose();
-
+        //          center point cloud
+        surf_center = cell_base + 0.5 * Vector3f(cell_size, cell_size, cell_size);
+        points = (points.transpose().colwise() - surf_center).transpose() / cell_size;
         // calculate weight based on distance, normalized to cube diagonal
-        Eigen::VectorXf w = points.rowwise().norm() / (2*support_radius);
+        Eigen::VectorXf w = points.rowwise().norm() / (support_radius / cell_size);
         w = 1.0 - (w.array() * w.array());
 
-        // biquad polynomial matrix
-        Eigen::MatrixXf b = Eigen::MatrixXf::Ones(npt, 6);
-        b.col(1) = points.col(0);
-        b.col(2) = points.col(1);
-        b.col(3) = (points.col(0).array() * points.col(0).array());
-        b.col(4) = (points.col(0).array() * points.col(1).array());
-        b.col(5) = (points.col(1).array() * points.col(1).array());
+        // quadric design matrix
+        int n_constraints = 4;
+        Eigen::MatrixXf b = Eigen::MatrixXf::Zero(npt*n_constraints, 10);
+        Eigen::VectorXf f = Eigen::VectorXf::Zero(npt*n_constraints);
+        Eigen::VectorXf wN = Eigen::VectorXf::Ones(npt*n_constraints);
+
+        for (std::size_t i = 0; i < npt; ++i)
+        {
+            int iN = i*n_constraints;
+
+            // weights
+            wN(iN, 0) = 1.0;
+            wN(iN+1, 0) = wN(iN+2, 0) = wN(iN+3, 0) = 0.33;
+
+            // function values
+            f(iN) = 0;
+        
+            f(iN+1) = normals(i, 0);
+            f(iN+2) = normals(i, 1);
+            f(iN+3) = normals(i, 2);
+            
+
+            // design matrix    -   quadric
+            Eigen::Vector3f p = points.row(i);
+
+            b(iN, 0) = 1;                               // 1
+            b(iN, 1) = p(0);                    // x
+            b(iN, 2) = p(1);                    // y
+            b(iN, 3) = p(2);                    // z
+
+            b(iN, 4) = p(0)*p( 0);       // xx
+            b(iN, 5) = p(0)*p(1);       // xy
+            b(iN, 6) = p(0)*p(2);       // xz
+
+            b(iN, 7) = p(1)*p(1);       // yy
+            b(iN, 8) = p(1)*p(2);       // yz
+            b(iN, 9) = p(2)*p(2);       // zz
+
+            
+            // design matrix    -   constraint px
+            b(iN+1, 1) = 1;
+            b(iN+1, 3) = 2*points(i, 0);
+            b(iN+1, 4) = points(i, 1);
+            b(iN+1, 5) = points(i, 2);
+
+            // design matrix    -   constraint py
+            b(iN+2, 2) = 1;
+            b(iN+2, 5) = points(i, 0);
+            b(iN+2, 7) = 2*points(i, 1);
+            b(iN+2, 8) = points(i, 2);
+
+            // design matrix    -   constraint pz
+            b(iN+3, 3) = 1;
+            b(iN+3, 6) = points(i, 0);
+            b(iN+3, 8) = points(i, 1);
+            b(iN+3, 9) = 2*points(i, 2);
+        }
+
 
         // shape(6x6) B = sum[wi * bi * bi.T]_i
-        Eigen::MatrixXf B = (b.array().colwise() * w.array()).matrix().transpose() * b;
+        Eigen::MatrixXf B = (b.array().colwise() * wN.array()).matrix().transpose() * b;
 
         // bf = sum[wi * bi * f(ui,vi)]_i
-        Eigen::MatrixXf bf = ((w.transpose().array() * points.col(2).transpose().array()).matrix() * b).transpose(); 
+        Eigen::MatrixXf bf = ((wN.transpose().array() * f.transpose().array()).matrix() * b).transpose(); 
 
         // invert to get surface coefficients
-        //surf_coefs = B.inverse() * bf;          // never invert matrices
+        //surf_coefs = B.inverse() * bf;        // never invert matrices
         surf_coefs = B.colPivHouseholderQr().solve(bf);
         if (!check_coefs()) { return false; }     
 
@@ -352,34 +250,15 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
             error_max_surface_points_dist = 0.0;
             return true;
         }
-        
-        // ----------- ERROR: SURF -> POINTS
-        // sample surface within octree cell
-        vector<float> surf_edge_samples;
-        polynomial2::sample_surface_along_normal_rt(&surf_edge_samples, NULL, cell_base, cell_size, SURFACE_SAMPLING_RESOLUTION, surf_center, surf_normal, surf_coefs);
 
-        // calc max distance from surface sample to point cloud
-        float surface_point_dist = surf_edge_samples.size() == 0 ? numeric_limits<float>::max() : -1;
-        std::vector<int> pointIdxNKNSearch;
-        std::vector<float> pointNKNSquaredDistance;
-        for (int p = 0; p < surf_edge_samples.size(); p+=3) {
-            pcl::PointXYZ edge_sample (surf_edge_samples[p],surf_edge_samples[p+1],surf_edge_samples[p+2]);
-            if (octree->nearestKSearch (edge_sample, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
-            {
-                surface_point_dist = max(surface_point_dist, pointNKNSquaredDistance[0]);
-            } 
+        // calc point2surface
+        error_max_surface_points_dist = 0;
+        error_avg_points_surface_dist = 0;
+        for (std::size_t i = 0; i < npt; ++i)
+        {
+            error_avg_points_surface_dist += polynomial2::calc_taubin_dist(points.row(i), surf_center, cell_size, surf_coefs) / npt;
         }
-        error_max_surface_points_dist = sqrtf(surface_point_dist);
         
-        // return false if surface to point cloud distance is bigger than error threshold
-        if (error_max_surface_points_dist > error_threshold) {
-            return false;
-        }
-
-        // ----------- ERROR: POINTS -> SURF
-
-        // point to surface distance along point normal
-        error_avg_points_surface_dist = polynomial2::calc_avg_distance_to_surface_rt(points, normals, surf_coefs);
 
         // return well approximated if all errors are below threshold
         return (error_avg_points_surface_dist < error_threshold);

@@ -353,9 +353,7 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
   const vector<int>& children_depth = children_[depth_max];
   const float* pts_normals = point_cloud.ptr(PointsInfo::kNormal);  // hard coded channel sizes
 
-  const int channel_pt = 3;
-  const int channel_normal = 9;
-  const int channel_dis = 3;
+  const int channel_normal = 10;
  
   // allocate array mem
   normal_err_[depth_max].resize(nnum_depth, 1.0e20f);
@@ -382,13 +380,9 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
 
     // allocate memory for data arrays
     normal_d.assign(nnum_d * channel_normal, 0.0f);
-    pt_d.assign(nnum_d * channel_pt, 0.0f);
-    displacement_d.assign(channel_dis * nnum_d, 0.0f);
     normal_err_d.assign(nnum_d, 1.0e20f);   // !!! initialized
     distance_err_d.assign(nnum_d, 1.0e20f);   // !!! as 1.0e20f
     float radius = sqrtf(0.75*scale*scale) * (1.0 + overlap_amount());   // equal to half cube diagonal
-
-
 
     // iterate over all nodes at current depth
     for (int i = 0; i < nnum_d; ++i) {
@@ -423,20 +417,9 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
 
       // -------------- STORE RESULTS -----------------------
       if (helper.npt >= helper.THRESHOLD_MIN_NUM_POINTS) {
-        for (int c = 0; c < 3; c++) {
-          // store surface center in displacement_d (0-3)
-          displacement_d[c * nnum_d + i] = (helper.surf_center(c) - cell_center(c)) / scale;
-          //displacement_d[c * nnum_d + i] = 2.1+c*0.1;
-
-          // store surface in normal (0-3)
-          normal_d[c * nnum_d + i] = helper.surf_normal(c);
-          //normal_d[c * nnum_d + i] = 0.1+c*0.1;
-        }
-
         // store surface coefficients in normal (3-9)
-        for (int c = 0; c < 6; c++) {
-          normal_d[(c+3) * nnum_d + i] = helper.surf_coefs(c, 0);
-          //normal_d[(c+3) * nnum_d + i] = 1.1+c*0.1;
+        for (int c = 0; c < 10; c++) {
+          normal_d[c * nnum_d + i] = helper.surf_coefs(c, 0);
         }
 
         // -------------- ERROR -----------------------
@@ -466,9 +449,7 @@ void Octree::avg_signal_implicit(Points& point_cloud, const vector<float>& pts_s
   const int depth_max = oct_info_.depth();
   const int depth_adp = oct_info_.adaptive_layer();
 
-  const int channel_pt = 3;
-  const int channel_normal = 9;
-  const int channel_dis = 3;
+  const int channel_normal = 10;
 
   // iterate over each depth layer
   for (int d = depth_adp-1; d >= 0; d--) {
@@ -481,15 +462,11 @@ void Octree::avg_signal_implicit(Points& point_cloud, const vector<float>& pts_s
     // data arrays for current depth layer
     const vector<int>& children_d = children_[d];
     vector<float>& normal_d = avg_normals_[d];
-    vector<float>& pt_d = avg_pts_[d];
-    vector<float>& displacement_d = displacement_[d];
     vector<float>& normal_err_d = normal_err_[d];
     vector<float>& distance_err_d = distance_err_[d];
 
     // allocate memory for data arrays
     normal_d.assign(nnum_d * channel_normal, 0.0f);
-    pt_d.assign(nnum_d * channel_pt, 0.0f);
-    displacement_d.assign(channel_dis * nnum_d, 0.0f);
     normal_err_d.assign(nnum_d, 1.0e20f);   // !!! initialized
     distance_err_d.assign(nnum_d, 1.0e20f);   // !!! as 1.0e20f
 
@@ -513,27 +490,15 @@ void Octree::avg_signal_implicit(Points& point_cloud, const vector<float>& pts_s
           {
             num_non_empty_children++;
 
-            for (int c = 0; c < 3; c++) {
-              // store surface center in displacement_d (0-3)
-              displacement_d[c * nnum_d + i] += displacement_[d+1][c * nnum_d + a];
+            for (int c = 0; c < channel_normal; c++) {
               // store surface in normal (0-3)
               normal_d[c * nnum_d + i] = avg_normals_[d+1][c * nnum_d + a];
             }
-
-            // store surface coefficients in normal (3-9)
-            for (int c = 0; c < 6; c++) {
-              normal_d[(c+3) * nnum_d + i] += avg_normals_[d+1][(c+3) * nnum_d + i];
-            }
-
           }
-
         }
 
         // average all copied
-        for (int c = 0; c < 9; c++) {
-          if (c < 3) {
-            displacement_d[c * nnum_d + i] /= num_non_empty_children;
-          }
+        for (int c = 0; c < channel_normal; c++) {
           normal_d[c * nnum_d + i] /= num_non_empty_children;
         }
 
@@ -1158,29 +1123,27 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
       //if (node_type(child_d[i]) == kInternelNode && d != depth) continue;
       if (node_type(child_d[i]) == kInternelNode && d != depth) continue;
 
-      float n[3], pt[3], pt_ref[3], coef[6];
-      node_normal(n, i, d);
-      node_slim_coefficients(coef, i, d);
-      float len = fabs(n[0]) + fabs(n[1]) + fabs(n[2]);
+      float n[3], pt[3], pt_ref[3], coef[10];
+      node_coefficients(coef, i, d);
+
+      float len = 0;
+      for (int c = 0; c < 10; c++) { len += fabs(n[c]); }
       if (len == 0) continue;             // if normal is zero cell has no surface
       node_pos(pt, i, d, pt_ref);
-      node_dis_xyz(pt, i, d);
 
-      Vector3f cell_base, surf_center, surf_normal;
+      Vector3f cell_base, surf_center;
       for (int c = 0; c < 3; ++c) {
         cell_base(c) = pt_ref[c] * cube_size;           // adjust cell base pos to global scale
         surf_center(c) = cell_base(c) + 0.5*cube_size;  // adjust surfel center to global scale
-        surf_center(c) += pt[c] * cube_size;
-        surf_normal(c) = n[c];
       }
 
-      MatrixXf surf_coefs(6,1);
-      for (int c = 0; c < 6; ++c) {
-        surf_coefs(c,0) = coef[c];
+      VectorXf surf_coefs(10);
+      for (int c = 0; c < 10; ++c) {
+        surf_coefs(c) = coef[c];
       }
       
       // render surface
-      polynomial2::sample_surface_along_normal_rt(&V, &F, cell_base, cube_size, 8, surf_center, surf_normal, surf_coefs);
+      polynomial2::visualize_quadric(&V, &F, cell_base, cube_size, 4, surf_center, surf_coefs);
     }
 
   }
@@ -1195,7 +1158,7 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
 
   // fix vertex indexing: indices have to start at 0, because write_obj takes care of it later
   for (int i = 0; i < F.size(); i++) {
-    F[i] -= 1;
+    F[i] += 0;
   }
 }
 

@@ -19,7 +19,7 @@ void OctreeInfo::initialize(int depth, int full_depth, bool node_displacement,
   set_full_layer(full_depth);
   set_adaptive_layer(adaptive_depth);
   set_adaptive(adaptive);
-  set_node_dis(node_displacement);
+  set_node_dis(false);
   set_key2xyz(key2xyz);
   set_extraplate(extrapolate);
   set_implicit(implicit);
@@ -59,7 +59,7 @@ void OctreeInfo::initialize(int depth, int full_depth, bool node_displacement,
   }
 
   // HARD CODED HACK
-  channel = 12; // surface normal (3), slim2 (6), surface center (3)
+  channel = 10; // quadric (10)
 
   set_channel(OctreeInfo::kFeature, channel);
   // location = -1 means the features exist on every node

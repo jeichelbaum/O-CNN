@@ -23,28 +23,12 @@ using Eigen::MatrixXf;
 
 class polynomial2 {
  public:
+    static float eval_quadric(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs);
 
-    // ----- Coordinate System
-    static MatrixXf calc_rotation_matrix(Vector3f surf_normal);
+    static void visualize_quadric(vector<float>* verts, vector<int>* faces, Eigen::Vector3f base, float size, int n_sub,
+            Eigen::Vector3f quadric_center, Eigen::VectorXf quadric_coefs);
 
-    // ----- Intersection
-    static VectorXf surface_ray_intersection(Vector3f Roc, Vector3f Rrd, MatrixXf c); 
-    static float surface_intersection_along_normal(Vector3f Roc, Vector3f Rrd, MatrixXf c);
-
-    // ----- Sampling
-    // sample surface in UV coordinates
-    static void sample_surface(vector<float>* samples, Vector3f cell_base, float cell_size, int resolution, 
-        Vector3f surf_center, Vector3f surf_normal, MatrixXf surf_coefs);
-
-    // raytrace three axis aligned cube faces
-    //static void sample_surface_rt(vector<float>* samples, Vector3f cube_base, float cube_size, int resolution, Vector3f surf_center, MatrixXf R, MatrixXf surf_coefs);
-    
-    // raytrace normal plane
-    static void sample_surface_along_normal_rt(vector<float>* samples, vector<int>* faces, Vector3f cube_base, float cube_size, int resolution, Vector3f surf_center, Vector3f surf_normal, MatrixXf surf_coefs);
-
-    // ----- Error
-    static float calc_avg_distance_to_surface_rt(MatrixXf points, MatrixXf normals, MatrixXf coefs);
-
+    static float calc_taubin_dist(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs);
 };
 
 
@@ -63,8 +47,7 @@ class Polynomial2Approx {
         const int THRESHOLD_MIN_NUM_POINTS = 6;
 
         Vector3f surf_center;
-        Vector3f surf_normal;
-        MatrixXf surf_coefs;
+        VectorXf surf_coefs;
 
         float error_avg_points_surface_dist;
         float error_max_surface_points_dist;

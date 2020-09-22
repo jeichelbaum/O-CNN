@@ -105,6 +105,8 @@ void OctreeParser::node_pos(float* xyz, int id, int depth, float* xyz_base) cons
     xyz[c] += 0.5f;
   }
 
+  return;
+
   // displacement wont be during implicit calculation for now, because first calculate normal + implicits, then displacement
   // therefore implicit surfaces originate at cube center
   if (info_->has_displace()) {
@@ -142,7 +144,7 @@ void OctreeParser::print_feature(int id, int depth) const {
 }
 
 
-void OctreeParser::node_slim_coefficients(float* coefs, int id, int depth) const {
+void OctreeParser::node_coefficients(float* coefs, int id, int depth) const {
   int num = info_->node_num(depth);
   const float* feature_d = feature_cpu(depth);
   int loc = info_->locations(OctreeInfo::kFeature);
@@ -150,9 +152,9 @@ void OctreeParser::node_slim_coefficients(float* coefs, int id, int depth) const
 
 
   if ((loc == -1 || loc == depth) && ch >= 3) {
-    for (int c = 0; c < 6; ++c) { coefs[c] = feature_d[(c+3) * num + id]; }
+    for (int c = 0; c < 10; ++c) { coefs[c] = feature_d[c * num + id]; }
   } else {
-    for (int c = 0; c < 6; ++c) { coefs[c] = 0; }
+    for (int c = 0; c < 10; ++c) { coefs[c] = 0; }
   }
 }
 

@@ -73,7 +73,7 @@ class Octree : public OctreeParser {
   void covered_depth_nodes();
   void valid_depth_range(int& depth_start, int& depth_end) const;
 
-  float overlap_amount() { return 0.0; };
+  float overlap_amount() { return 0.3; };
   
  protected:
   // the octree is serialized into buffer_
