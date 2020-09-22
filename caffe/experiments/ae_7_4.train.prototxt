@@ -6,7 +6,7 @@ layer {
     phase: TRAIN
   }
   data_param {
-    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_quad2/train"
+    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_slim2/train"
     batch_size: 32
     backend: LMDB
   }
@@ -23,7 +23,7 @@ layer {
     phase: TEST
   }
   data_param {
-    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_quad2/test"
+    source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_slim2/test"
     batch_size: 32
     backend: LMDB
   }
@@ -89,7 +89,15 @@ layer {
   octree_param {
     curr_depth: 5
     content_flag: 'feature'
-    signal_channel: 120922_ae_7_4
+    signal_channel: 12
+  }
+}
+layer {
+  name: "OctConv2"
+  type: "OctreeConv"
+  bottom: "OctLData2"
+  top: "OctConv2"
+  convolution_param {
     num_output: 8
     bias_term: false
     kernel_size: 3
@@ -1101,7 +1109,7 @@ layer {
   top: "Slice1"
   top: "Slice2"
   slice_param {
-    slice_point: 3
+    slice_point: 9
     axis: 1
   }
 }
@@ -1118,7 +1126,7 @@ layer {
   top: "Slice3"
   top: "Slice4"
   slice_param {
-    slice_point: 3
+    slice_point: 9
     axis: 1
   }
 }
@@ -1342,7 +1350,7 @@ layer {
   top: "Slice5"
   top: "Slice6"
   slice_param {
-    slice_point: 3
+    slice_point: 9
     axis: 1
   }
 }
@@ -1359,7 +1367,7 @@ layer {
   top: "Slice7"
   top: "Slice8"
   slice_param {
-    slice_point: 3
+    slice_point: 9
     axis: 1
   }
 }
@@ -1583,7 +1591,7 @@ layer {
   top: "Slice9"
   top: "Slice10"
   slice_param {
-    slice_point: 3
+    slice_point: 9
     axis: 1
   }
 }
@@ -1600,7 +1608,7 @@ layer {
   top: "Slice11"
   top: "Slice12"
   slice_param {
-    slice_point: 3
+    slice_point: 9
     axis: 1
   }
 }
@@ -1824,7 +1832,7 @@ layer {
   top: "Slice13"
   top: "Slice14"
   slice_param {
-    slice_point: 3
+    slice_point: 9
     axis: 1
   }
 }
@@ -1841,7 +1849,7 @@ layer {
   top: "Slice15"
   top: "Slice16"
   slice_param {
-    slice_point: 3
+    slice_point: 9
     axis: 1
   }
 }
