@@ -127,12 +127,12 @@ bool Polynomial2Approx::parent_well_approximated(int cur_depth, int* xyz)
 }
 
 // returns bool: surface_well_approximated
-bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, float support_radius, float error_threshold)
+bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, float support_radius, float error_p2q, float error_q2p)
 {
     // reset output variables
     npt = 0;
-    error_max_surface_points_dist = -1;
-    error_avg_points_surface_dist = -1;
+    error_max_surface_points_dist = numeric_limits<float>::max();
+    error_avg_points_surface_dist = numeric_limits<float>::max();
 
     // search in cell radius
     pcl::PointXYZ cell_center;
@@ -246,22 +246,38 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
 
         // skip error calculation for last layer
         if (cell_size == 1.0) {
-            error_avg_points_surface_dist = 0.0;
-            error_max_surface_points_dist = 0.0;
             return true;
         }
 
-        // calc point2surface
-        error_max_surface_points_dist = 0;
+        // calc point2surface via taubin distance
+        // return false if surface to point cloud distance is bigger than error threshold
         error_avg_points_surface_dist = 0;
-        for (std::size_t i = 0; i < npt; ++i)
-        {
+        for (std::size_t i = 0; i < npt; ++i) {
             error_avg_points_surface_dist += polynomial2::calc_taubin_dist(points.row(i), surf_center, cell_size, surf_coefs) / npt;
         }
+        if (error_avg_points_surface_dist > error_p2q) { return false; }
+
         
+        // calc surface2points
+        vector<float> surf_edge_samples;
+        vector<int> faces;
+        polynomial2::visualize_quadric(&surf_edge_samples, &faces, cell_base, cell_size, SURFACE_SAMPLING_RESOLUTION, surf_center, surf_coefs);
+
+        // calc max distance from surface sample to point cloud
+        float surface_point_dist = surf_edge_samples.size() == 0 ? numeric_limits<float>::max() : 0;
+        std::vector<int> pointIdxNKNSearch;
+        std::vector<float> pointNKNSquaredDistance;
+        for (int p = 0; p < surf_edge_samples.size(); p+=3) {
+            pcl::PointXYZ edge_sample (surf_edge_samples[p],surf_edge_samples[p+1],surf_edge_samples[p+2]);
+            if (octree->nearestKSearch (edge_sample, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
+            {
+                surface_point_dist = max(surface_point_dist, pointNKNSquaredDistance[0]);
+            } 
+        }
+        error_max_surface_points_dist = sqrtf(surface_point_dist);
 
         // return well approximated if all errors are below threshold
-        return (error_avg_points_surface_dist < error_threshold);
+        return (error_max_surface_points_dist <= error_q2p);
     }
 
     return false;

@@ -344,7 +344,8 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
 
   // ----------------------
 
-  float ERROR_THRESHOLD = oct_info_.threshold_distance();
+  float ERROR_NORMAL = oct_info_.threshold_normal();
+  float ERROR_DISTANCE = oct_info_.threshold_distance();
    
   const int depth_max = oct_info_.depth();
   const int depth_adp = oct_info_.adaptive_layer();
@@ -407,7 +408,7 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
       // approximate surface and measure error
       Vector3f cell_base = { xyz[0] * scale, xyz[1] * scale, xyz[2] * scale };
       Vector3f cell_center = cell_base + 0.5*Vector3f(scale, scale, scale);
-      bool well_approx = helper.approx_surface(cell_base, scale, radius, ERROR_THRESHOLD);
+      bool well_approx = helper.approx_surface(cell_base, scale, radius, ERROR_NORMAL, ERROR_DISTANCE);
 
       // treat as well approx, if next octants would have too few points for approximation
       if (helper.npt <= helper.THRESHOLD_MIN_NUM_POINTS*8) {
@@ -417,16 +418,14 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
 
       // -------------- STORE RESULTS -----------------------
       if (helper.npt >= helper.THRESHOLD_MIN_NUM_POINTS) {
-        // store surface coefficients in normal (3-9)
         for (int c = 0; c < 10; c++) {
           normal_d[c * nnum_d + i] = helper.surf_coefs(c, 0);
         }
 
         // -------------- ERROR -----------------------
         if (d < depth_max) {
-          float max_dist = max(helper.error_avg_points_surface_dist, helper.error_max_surface_points_dist);
-          normal_err_d[i] = max_dist;
-          distance_err_d[i] = max_dist;
+          normal_err_d[i] = helper.error_avg_points_surface_dist;
+          distance_err_d[i] = helper.error_max_surface_points_dist;
 
           // store values if well approximated
           if (well_approx) {
@@ -444,7 +443,8 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
 void Octree::avg_signal_implicit(Points& point_cloud, const vector<float>& pts_scaled,
     const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx) {
 
-  float ERROR_THRESHOLD = oct_info_.threshold_distance();
+  float ERROR_NORMAL = oct_info_.threshold_normal();
+  float ERROR_DISTANCE = oct_info_.threshold_distance();
    
   const int depth_max = oct_info_.depth();
   const int depth_adp = oct_info_.adaptive_layer();
@@ -502,8 +502,8 @@ void Octree::avg_signal_implicit(Points& point_cloud, const vector<float>& pts_s
           normal_d[c * nnum_d + i] /= num_non_empty_children;
         }
 
-        normal_err_d[i] = ERROR_THRESHOLD + 1.0;
-        distance_err_d[i] = ERROR_THRESHOLD + 1.0;
+        normal_err_d[i] = ERROR_NORMAL + 1.0;
+        distance_err_d[i] = ERROR_DISTANCE + 1.0;
       }
 
 

@@ -40,11 +40,11 @@ class Polynomial2Approx {
         void set_well_approximated(int cur_depth, int* xyz);
         bool parent_well_approximated(int cur_depth, int* xyz);
 
-        bool approx_surface(Vector3f cell_base, float cell_size, float support_radius, float error_threshold);
+        bool approx_surface(Vector3f cell_base, float cell_size, float support_radius, float error_p2q, float error_q2p);
         bool check_coefs();
 
         int npt;
-        const int THRESHOLD_MIN_NUM_POINTS = 6;
+        const int THRESHOLD_MIN_NUM_POINTS = 5;
 
         Vector3f surf_center;
         VectorXf surf_coefs;
