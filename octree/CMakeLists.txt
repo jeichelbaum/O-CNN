@@ -6,7 +6,7 @@ option(USE_WINDOWS_IO "Use the header io.h provided by Windows" OFF)
 option(USE_CUDA "CPU only, without CUDA" ON)
 option(USE_PYTHON "Build the python interface with pybind11" ON)
 option(USE_GLOG "Use glog" OFF)
-option(USE_OPENMP "Use OpenMP for speed up" OFF)
+option(USE_OPENMP "Use OpenMP for speed up" ON)
 option(USE_RPLY "Use the library rply in the project octree" OFF)
 option(KEY64 "Use 64-bit key for deeper octrees" OFF)
 option(ABI "Open CXX11_ABI compatibility" OFF)
@@ -26,11 +26,8 @@ endif()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # # c++11 Support
-set (CMAKE_CXX_STANDARD 11) 
-set (CMAKE_POSITION_INDEPENDENT_CODE ON)
-if(ABI)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
-endif()
+set (CMAKE_CXX_STANDARD 14) 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # add libraries
 if(USE_MINIBALL)
@@ -112,6 +109,11 @@ include_directories("${PROJECT_SOURCE_DIR}/octree")
 include_directories("${PROJECT_SOURCE_DIR}/viewer")
 include_directories("${PROJECT_SOURCE_DIR}/scanner")
 
+# include Point Cloud Library
+find_package( PCL REQUIRED )
+include_directories( ${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 # add the octree lib
 add_library(octree_lib ${src_octree_lib})
@@ -130,11 +132,14 @@ foreach(source ${srcs})
   if(name MATCHES "build_octree") 
     set(name "octree") 
   endif()
-  add_executable(${name} ${source})
-  target_link_libraries(${name} octree_lib)
-  set_target_properties(${name} PROPERTIES FOLDER "tools")
-endforeach(source)
 
+  set(builds "octree", "octree2mesh")
+  if (name IN_LIST builds)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} octree_lib ${PCL_LIBRARIES})
+    set_target_properties(${name} PROPERTIES FOLDER "tools")
+  endif()
+endforeach(source)
 
 # add the python interface
 if(USE_PYTHON)

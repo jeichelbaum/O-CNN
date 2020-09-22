@@ -1,15 +1,25 @@
 #ifndef _OCTREE_OCTREE_
 #define _OCTREE_OCTREE_
 
+#include <limits>
 #include <vector>
 #include <string>
+#include <chrono> 
 
 #include "points.h"
 #include "octree_info.h"
 #include "octree_parser.h"
+#include "polynomial2.h"
+#include "chamfer_dist.h"
+
+#include "eigen3/Eigen/Dense"
+
+#include <pcl/point_cloud.h>
+#include <pcl/octree/octree_search.h>
 
 using std::vector;
 using std::string;
+using namespace std::chrono;
 
 class Octree : public OctreeParser {
  public:
@@ -24,7 +34,7 @@ class Octree : public OctreeParser {
   bool write_octree(const string& filename) const;
   string get_binary_string() const;
 
-  void build(const OctreeInfo& octree_info, const Points& point_cloud);
+  void build(const OctreeInfo& octree_info, Points& point_cloud);
   void trim_octree();
 
   // serialize the results of the function build() into the buffer_
@@ -46,9 +56,12 @@ class Octree : public OctreeParser {
   void build_structure(vector<uintk>& node_keys);
   void calc_node_num();  // called after the function build_structure()
 
-  void calc_signal(const Points& point_cloud, const vector<float>& pts_scaled,
-      const vector<uintk>& sorted_idx, const vector<uintk>& unique_idx);
-  void calc_signal(const bool calc_normal_err, const bool calc_dist_err);
+  int get_key_index(const vector<uint32>& key_d, uint32 key);
+
+  void calc_signal_implicit(Points& point_cloud, const vector<float>& pts_scaled,
+      const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
+  void avg_signal_implicit(Points& point_cloud, const vector<float>& pts_scaled,
+      const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx);
   void extrapolate_signal();
 
   void key_to_xyz(vector<vector<uintk>>& xyz);
@@ -60,6 +73,8 @@ class Octree : public OctreeParser {
   void covered_depth_nodes();
   void valid_depth_range(int& depth_start, int& depth_end) const;
 
+  float overlap_amount() { return 0.0; };
+  
  protected:
   // the octree is serialized into buffer_
   vector<char> buffer_;

@@ -126,4 +126,3 @@ void marching_cube_octree(vector<float>& V, vector<int>& F, const vector<float>&
     mcube.contouring(V, F);
   }
 }
-

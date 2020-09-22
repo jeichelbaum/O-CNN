@@ -145,8 +145,8 @@ def m40_convert_points_to_octree(depth=5, adaptive=0, node_dis=0):
       filenames = os.listdir(curr_folder)
       filelist_name = os.path.join(curr_folder, 'list.txt')
       with open(filelist_name, 'w') as fid:
-        for filename in filenames:
-          if filename.endswith('.points'):
+        for i, filename in enumerate(filenames):
+          if filename.endswith('.points') and i % stride == 0:
             fid.write(os.path.join(curr_folder, filename) + '\n')
       # run octree
       octree_folder = points_folder[:-6] + 'octree.%d' % depth
@@ -214,8 +214,10 @@ def m40_generate_octree_tfrecords(depth=5):
   m40_convert_points_to_octree(depth, adaptive=0, node_dis=0)
 
   # generate tfrecords
-  octree_folder = os.path.join(root_folder, 'ModelNet40.octree.%d' % depth)
+  octree_folder = os.path.join(root_folder, 'ModelNet40.octree.%d.adaptive' % depth)
+  octree_folder = os.path.join(root_folder, 'ModelNet40_points/%s' % octree_folder_name)
   for folder in ['train', 'test']:
+  #for folder in ['test']:
     train = folder == 'train'
     shuffle = '--shuffle true' if folder == 'train' else ''
     filelist, idx = m40_get_filelist(

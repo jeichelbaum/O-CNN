@@ -71,7 +71,9 @@ std::string Octree::get_binary_string() const {
   return std::string(buffer_.cbegin(), buffer_.cend());
 }
 
-void Octree::build(const OctreeInfo& octree_info, const Points& point_cloud) {
+void Octree::build(const OctreeInfo& octree_info, Points& point_cloud) {
+  auto start = system_clock::now();
+
   // init
   clear(octree_info.depth());
   oct_info_ = octree_info;
@@ -91,17 +93,22 @@ void Octree::build(const OctreeInfo& octree_info, const Points& point_cloud) {
   // set nnum_[], nnum_cum_[], nnum_nempty_[] and ptr_dis_[]
   calc_node_num();
 
+  covered_depth_nodes(); // weird displace but also computes idx_d needed for point attribution
+
   // average the signal for the last octree layer
-  calc_signal(point_cloud, pts_scaled, sorted_idx, unique_idx);
+  calc_signal_implicit(point_cloud, pts_scaled, sorted_idx, unique_idx);
+  avg_signal_implicit(point_cloud, pts_scaled, sorted_idx, unique_idx);
+
+  //read_signal("/home/jeri/dev/implicit_ocnn/testwrite.exoct");
 
   // average the signal for the other octree layers
   if (oct_info_.locations(OctreeInfo::kFeature) == -1) {
     covered_depth_nodes();
 
-    bool has_normal = point_cloud.info().has_property(PointsInfo::kNormal);
+    /*bool has_normal = point_cloud.info().has_property(PointsInfo::kNormal);
     bool calc_norm_err = oct_info_.is_adaptive() && has_normal;
     bool calc_dist_err = oct_info_.is_adaptive() && oct_info_.has_displace() && has_normal;
-    calc_signal(calc_norm_err, calc_dist_err);
+    calc_signal(calc_norm_err, calc_dist_err, pts_scaled, sorted_idx, unique_idx);*/
   }
 
   // generate split label
@@ -110,14 +117,18 @@ void Octree::build(const OctreeInfo& octree_info, const Points& point_cloud) {
   }
 
   // extrapolate node feature
-  if (oct_info_.extrapolate() && oct_info_.locations(OctreeInfo::kFeature) == -1) {
+  /*if (oct_info_.extrapolate() && oct_info_.locations(OctreeInfo::kFeature) == -1) {
     extrapolate_signal();
-  }
+  }*/
 
   // serialization
   serialize();
 
   trim_octree();
+
+  auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<microseconds>(stop - start).count(); 
+  printf("total time %f\n", float(duration) / 1000000.0);
 }
 
 void Octree::clear(int depth) {
@@ -190,7 +201,7 @@ void Octree::sort_keys(vector<uintk>& sorted_keys, vector<uintk>& sorted_idx,
   }
 
   // sort all the code
-  std::sort(code.begin(), code.end());
+  std::sort(code.begin(), code.end()); // will be sorted by generated key
 
   // unpack the code
   sorted_keys.resize(npt);
@@ -308,360 +319,233 @@ void Octree::calc_node_num() {
   oct_info_.set_ptr_dis(); // !!! note: call this function to update the ptr
 }
 
-// compute the average signal for the last octree layer
-void Octree::calc_signal(const Points& point_cloud, const vector<float>& pts_scaled,
-    const vector<uintk>& sorted_idx, const vector<uintk>& unique_idx) {
-  int depth = oct_info_.depth();
-  const float* normals = point_cloud.ptr(PointsInfo::kNormal);
-  const float* features = point_cloud.ptr(PointsInfo::kFeature);
-  const float* labels = point_cloud.ptr(PointsInfo::kLabel);
-  const int nnum = oct_info_.node_num(depth);
-
-  const vector<int>& children = children_[depth];
-  if (normals != nullptr) {
-    const int channel = point_cloud.info().channel(PointsInfo::kNormal);
-    avg_normals_[depth].assign(channel * nnum, 0.0f);
-
-    #pragma omp parallel for
-    for (int i = 0; i < nnum; i++) {
-      int t = children[i];
-      if (node_type(t) == kLeaf) continue;
-
-      vector<float> avg_normal(channel, 0.0f);
-      for (uintk j = unique_idx[t]; j < unique_idx[t + 1]; j++) {
-        int h = sorted_idx[j];
-        for (int c = 0; c < channel; ++c) {
-          avg_normal[c] += normals[channel * h + c];
-        }
-      }
-
-      float factor = norm2(avg_normal);
-      if (factor < 1.0e-6f) {
-        int h = sorted_idx[unique_idx[t]];
-        for (int c = 0; c < channel; ++c) {
-          avg_normal[c] = normals[channel * h + c];
-        }
-        factor = norm2(avg_normal) + ESP;
-      }
-      for (int c = 0; c < channel; ++c) {
-        avg_normals_[depth][c * nnum + i] = avg_normal[c] / factor;
-      }
+int Octree::get_key_index(const vector<uint32>& key_d, uint32 key) {
+  for (int i = 0; i < key_d.size(); i++) {
+    if (key_d[i] == key) {
+      return i;
     }
   }
-
-  if (features != nullptr) {
-    const int channel = point_cloud.info().channel(PointsInfo::kFeature);
-    avg_features_[depth].assign(channel * nnum, 0.0f);
-
-    #pragma omp parallel for
-    for (int i = 0; i < nnum; i++) {
-      int t = children[i];
-      if (node_type(t) == kLeaf) continue;
-
-      vector<float> avg_feature(channel, 0.0f);
-      for (uintk j = unique_idx[t]; j < unique_idx[t + 1]; j++) {
-        int h = sorted_idx[j];
-        for (int c = 0; c < channel; ++c) {
-          avg_feature[c] += features[channel * h + c];
-        }
-      }
-
-      float factor = unique_idx[t + 1] - unique_idx[t] + ESP;
-      for (int c = 0; c < channel; ++c) {
-        avg_features_[depth][c * nnum + i] = avg_feature[c] / factor;
-      }
-    }
-  }
-
-  if (labels != nullptr) {
-    // the channel of label is fixed as 1
-    avg_labels_[depth].assign(nnum, -1.0f);   // initialize as -1
-    const int npt = point_cloud.info().pt_num();
-    max_label_ = static_cast<int>(*std::max_element(labels, labels + npt)) + 1;
-
-    #pragma omp parallel for
-    for (int i = 0; i < nnum; i++) {
-      int t = children[i];
-      if (node_type(t) == kLeaf) continue;
-
-      int valid_num = 0;
-      vector<int> avg_label(max_label_, 0);
-      for (uintk j = unique_idx[t]; j < unique_idx[t + 1]; j++) {
-        int h = sorted_idx[j];
-        int l = static_cast<int>(labels[h]);
-        if (l < 0) { continue; }  // invalid labels
-        avg_label[l] += 1;
-        valid_num += 1;
-      }
-      if (valid_num > 0) {
-        avg_labels_[depth][i] = static_cast<float>(std::distance(avg_label.begin(),
-                    std::max_element(avg_label.begin(), avg_label.end())));
-      }
-    }
-  }
-
-  if (oct_info_.has_displace() || oct_info_.save_pts()) {
-    const int channel = 3;
-    const float mul = 1.1547f; // = 2.0f / sqrt(3.0f)
-    avg_pts_[depth].assign(nnum * channel, 0.0f);
-    int channel_dis = normals == nullptr ? 4 : 1;
-    vector<float>& displacement = displacement_[depth];
-    displacement.assign(channel_dis * nnum, 0.0f);
-
-    #pragma omp parallel for
-    for (int i = 0; i < nnum; i++) {
-      int t = children[i];
-      if (node_type(t) == kLeaf) continue;
-
-      float avg_pt[3] = { 0.0f, 0.0f, 0.0f };
-      for (uintk j = unique_idx[t]; j < unique_idx[t + 1]; j++) {
-        int h = sorted_idx[j];
-        for (int c = 0; c < 3; ++c) {
-          avg_pt[c] += pts_scaled[3 * h + c];
-        }
-      }
-
-      float dis[4] = {0.0f, 0.0f, 0.0f, 0.0f };
-      float factor = unique_idx[t + 1] - unique_idx[t] + ESP; // points number
-      for (int c = 0; c < 3; ++c) {
-        avg_pt[c] /= factor;
-
-        float fract_part = 0.0f, int_part = 0.0f;
-        fract_part = std::modf(avg_pt[c], &int_part);
-
-        dis[c] = fract_part - 0.5f;
-        if (normals != nullptr) {
-          dis[3] += dis[c] * avg_normals_[depth][c * nnum + i];
-        } else {
-          dis[3] = 1.0f;
-        }
-
-        avg_pts_[depth][c * nnum + i] = avg_pt[c];
-      }
-
-      if (normals != nullptr) {
-        displacement[i] = dis[3] * mul;            // !!! note the *mul* !!!
-      } else {
-        for (int c = 0; c < 3; ++c) {
-          displacement[c * nnum + i] = dis[c];
-        }
-        displacement[3 * nnum + i] = dis[3] * mul; // !!! note the *mul* !!!
-      }
-    }
-  }
+  return -1;
 }
 
-void Octree::calc_signal(const bool calc_normal_err, const bool calc_dist_err) {
-  const int depth = oct_info_.depth();
+
+
+// compute the average signal for the last octree layer
+void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_scaled,
+    const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx) {
+
+  // rescale points to octree bounding box
+  const float* bbmin = oct_info_.bbmin();
+  const float mul = float(1 << oct_info_.depth()) / oct_info_.bbox_max_width();
+
+  // construct poly helper
+  Polynomial2Approx helper(point_cloud, bbmin, mul);
+  helper.init_parent_approx_tracking(oct_info_.depth());
+
+  // ----------------------
+
+  float ERROR_THRESHOLD = oct_info_.threshold_distance();
+   
+  const int depth_max = oct_info_.depth();
   const int depth_adp = oct_info_.adaptive_layer();
-  const int nnum_depth = oct_info_.node_num(depth);
+  const int nnum_depth = oct_info_.node_num(depth_max);
   const float imul = 2.0f / sqrtf(3.0f);
-  const vector<int>& children_depth = children_[depth];
-  const vector<float>& normal_depth = avg_normals_[depth];
-  const vector<float>& pt_depth = avg_pts_[depth];
-  const vector<float>& feature_depth = avg_features_[depth];
-  const vector<float>& label_depth = avg_labels_[depth];
+  const vector<int>& children_depth = children_[depth_max];
+  const float* pts_normals = point_cloud.ptr(PointsInfo::kNormal);  // hard coded channel sizes
 
-  const int channel_pt = pt_depth.size() / nnum_depth;
-  const int channel_normal = normal_depth.size() / nnum_depth;
-  const int channel_feature = feature_depth.size() / nnum_depth;
-  const int channel_label = label_depth.size() / nnum_depth;
+  const int channel_pt = 3;
+  const int channel_normal = 9;
+  const int channel_dis = 3;
+ 
+  // allocate array mem
+  normal_err_[depth_max].resize(nnum_depth, 1.0e20f);
+  distance_err_[depth_max].resize(nnum_depth, 1.0e20f);
 
-  const bool has_pt = !pt_depth.empty();
-  const bool has_dis = !displacement_[depth].empty();
-  const bool has_normal = !normal_depth.empty();
-  const bool has_feature = !feature_depth.empty();
-  const bool has_label = !label_depth.empty();
-
-  if (calc_normal_err) normal_err_[depth].resize(nnum_depth, 1.0e20f);
-  if (calc_dist_err) distance_err_[depth].resize(nnum_depth, 1.0e20f);
-
-  for (int d = depth - 1; d >= 0; --d) {
+  // iterate over each depth layer
+  for (int d = depth_adp; d <= depth_max; d++) {
+    // number of nodes and point indices on depth
+    const int nnum_d = oct_info_.node_num(d);
     const vector<int>& dnum_d = dnum_[d];
     const vector<int>& didx_d = didx_[d];
-    const vector<int>& children_d = children_[d];
-    const vector<uintk>& key_d = keys_[d];
-    const float scale = static_cast<float>(1 << (depth - d));
 
+    const vector<int>& children = children_[d];
+    const vector<uint32>& key_d = keys_[d];
+    const float scale = static_cast<float>(1 << (depth_max - d));
+
+    // data arrays for current depth layer
+    const vector<int>& children_d = children_[d];
     vector<float>& normal_d = avg_normals_[d];
     vector<float>& pt_d = avg_pts_[d];
-    vector<float>& label_d = avg_labels_[d];
-    vector<float>& feature_d = avg_features_[d];
     vector<float>& displacement_d = displacement_[d];
     vector<float>& normal_err_d = normal_err_[d];
     vector<float>& distance_err_d = distance_err_[d];
 
-    const int nnum_d = oct_info_.node_num(d);
-    int channel_dis = has_normal ? 1 : 4;
-    if (has_normal) normal_d.assign(nnum_d * channel_normal, 0.0f);
-    if (has_pt) pt_d.assign(nnum_d * channel_pt, 0.0f);
-    if (has_feature) feature_d.assign(nnum_d * channel_feature, 0.0f);
-    if (has_label) label_d.assign(nnum_d * channel_label, -1.0f);// !!! init as -1
-    if (has_dis) displacement_d.assign(channel_dis * nnum_d, 0.0f);
-    if (calc_normal_err) normal_err_d.assign(nnum_d, 1.0e20f);   // !!! initialized
-    if (calc_dist_err) distance_err_d.assign(nnum_d, 1.0e20f);   // !!! as 1.0e20f
+    // allocate memory for data arrays
+    normal_d.assign(nnum_d * channel_normal, 0.0f);
+    pt_d.assign(nnum_d * channel_pt, 0.0f);
+    displacement_d.assign(channel_dis * nnum_d, 0.0f);
+    normal_err_d.assign(nnum_d, 1.0e20f);   // !!! initialized
+    distance_err_d.assign(nnum_d, 1.0e20f);   // !!! as 1.0e20f
+    float radius = sqrtf(0.75*scale*scale) * (1.0 + overlap_amount());   // equal to half cube diagonal
 
+
+
+    // iterate over all nodes at current depth
     for (int i = 0; i < nnum_d; ++i) {
-      if (node_type(children_d[i]) == kLeaf) continue;
 
-      vector<float> n_avg(channel_normal, 0.0f);
-      if (has_normal) {
-        for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
-          if (node_type(children_depth[j]) == kLeaf) continue;
-          for (int c = 0; c < channel_normal; ++c) {
-            n_avg[c] += normal_depth[c * nnum_depth + j];
-          }
-        }
-
-        float len = norm2(n_avg);
-        if (len < 1.0e-6f) {
-          for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
-            if (node_type(children_depth[j]) == kLeaf) continue;
-            for (int c = 0; c < channel_normal; ++c) {
-              n_avg[c] = normal_depth[c * nnum_depth + j];
-            }
-          }
-          len = norm2(n_avg) + ESP;
-        }
-
-        for (int c = 0; c < channel_normal; ++c) {
-          n_avg[c] /= len;
-          normal_d[c * nnum_d + i] = n_avg[c];  // output
-        }
+      // leaf nodes are empty nodes
+      // Note: some nodes wont be considered, because they have no points in cell, but their support radius is big enough to capture points from other cells
+      if (node_type(children_d[i]) == kLeaf) {
+        continue;
       }
 
-      float count = ESP; // the non-empty leaf node in the finest layer
-      for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
-        if (node_type(children_depth[j]) != kLeaf) count += 1.0f;
-      }
-
-      vector<float> pt_avg(channel_pt, 0.0f);
-      if (has_pt) {
-        for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
-          if (node_type(children_depth[j]) == kLeaf) continue;
-          for (int c = 0; c < channel_pt; ++c) {
-            pt_avg[c] += pt_depth[c * nnum_depth + j];
-          }
-        }
-
-        for (int c = 0; c < channel_pt; ++c) {
-          pt_avg[c] /= count * scale;         // !!! note the scale
-          pt_d[c * nnum_d + i] = pt_avg[c];   // output
-        }
-      }
-
-      vector<float> f_avg(channel_feature, 0.0f);
-      if (has_feature) {
-        for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
-          if (node_type(children_depth[j]) == kLeaf) continue;
-          for (int c = 0; c < channel_feature; ++c) {
-            f_avg[c] += feature_depth[c * nnum_depth + j];
-          }
-        }
-
-        for (int c = 0; c < channel_feature; ++c) {
-          f_avg[c] /= count;
-          feature_d[c * nnum_d + i] = f_avg[c]; // output
-        }
-      }
-
-      vector<int> l_avg(max_label_, 0);
-      if (has_label) {
-        int valid_num = 0;
-        for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
-          int l = static_cast<int>(label_depth[j]);
-          if (l < 0) continue;
-          l_avg[l] += 1;
-          valid_num += 1;
-        }
-        if (valid_num > 0) {
-          label_d[i] = static_cast<float>(std::distance(l_avg.begin(),
-                      std::max_element(l_avg.begin(), l_avg.end())));
-        }
-      }
-
-      uintk ptu_base[3];
+      // ----------- OCTREE POINT IN RADIUS QUERY ----------------
+      // node key to xyz index
+      uint32 ptu_base[3];
       compute_pt(ptu_base, key_d[i], d);
-      float pt_base[3] = { ptu_base[0], ptu_base[1], ptu_base[2] };
-      if (has_dis) {
-        float dis_avg[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        for (int c = 0; c < 3; ++c) {
-          float fract_part = pt_avg[c] - pt_base[c];
-          dis_avg[c] = fract_part - 0.5f;
-          if (has_normal) {
-            dis_avg[3] += dis_avg[c] * n_avg[c];
-          } else {
-            dis_avg[3] = 1.0f;
-          }
+      int xyz[] = {ptu_base[0], ptu_base[1], ptu_base[2] };
+
+      // check if parent already well approximated already
+      if (d > 3 && helper.parent_well_approximated(d, xyz)) {
+          continue;
+      }
+
+      // approximate surface and measure error
+      Vector3f cell_base = { xyz[0] * scale, xyz[1] * scale, xyz[2] * scale };
+      Vector3f cell_center = cell_base + 0.5*Vector3f(scale, scale, scale);
+      bool well_approx = helper.approx_surface(cell_base, scale, radius, ERROR_THRESHOLD);
+
+      // treat as well approx, if next octants would have too few points for approximation
+      if (helper.npt <= helper.THRESHOLD_MIN_NUM_POINTS*8) {
+        well_approx = true;
+        helper.error_avg_points_surface_dist = helper.error_max_surface_points_dist = 0.0;
+      }
+
+      // -------------- STORE RESULTS -----------------------
+      if (helper.npt >= helper.THRESHOLD_MIN_NUM_POINTS) {
+        for (int c = 0; c < 3; c++) {
+          // store surface center in displacement_d (0-3)
+          displacement_d[c * nnum_d + i] = (helper.surf_center(c) - cell_center(c)) / scale;
+          //displacement_d[c * nnum_d + i] = 2.1+c*0.1;
+
+          // store surface in normal (0-3)
+          normal_d[c * nnum_d + i] = helper.surf_normal(c);
+          //normal_d[c * nnum_d + i] = 0.1+c*0.1;
         }
-        if (!has_normal) {
-          for (int c = 0; c < 3; ++c) {
-            displacement_d[c * nnum_d + i] = dis_avg[c];
-          }
-          displacement_d[3 * nnum_d + i] = dis_avg[3] * imul;
-        } else {
-          displacement_d[i] = dis_avg[3] * imul; // IMPORTANT: RESCALE
+
+        // store surface coefficients in normal (3-9)
+        for (int c = 0; c < 6; c++) {
+          normal_d[(c+3) * nnum_d + i] = helper.surf_coefs(c, 0);
+          //normal_d[(c+3) * nnum_d + i] = 1.1+c*0.1;
+        }
+
+        // -------------- ERROR -----------------------
+        if (d < depth_max) {
+          float max_dist = max(helper.error_avg_points_surface_dist, helper.error_max_surface_points_dist);
+          normal_err_d[i] = max_dist;
+          distance_err_d[i] = max_dist;
+
+          // store values if well approximated
+          if (well_approx) {
+            helper.set_well_approximated(d, xyz);
+          } 
         }
       }
 
-      float nm_err = 0.0f;
-      if (calc_normal_err && has_normal && d >= depth_adp) {
-        for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
-          if (node_type(children_depth[j]) == kLeaf)  continue;
-          for (int c = 0; c < 3; ++c) {
-            float tmp = normal_depth[c * nnum_depth + j] - n_avg[c];
-            nm_err += tmp * tmp;
-          }
-        }
-        nm_err /= count;
-        normal_err_d[i] = nm_err;
-      }
-
-      if (calc_dist_err && has_pt && d >= depth_adp) {
-        // the error from the original geometry to the averaged geometry
-        float distance_max1 = -1.0f;
-        // !!! note the scale
-        float pt_avg1[3] = { pt_avg[0] * scale, pt_avg[1] * scale, pt_avg[2] * scale };
-        for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
-          if (node_type(children_depth[j]) == kLeaf) continue;
-
-          float dis = 0.0f;
-          for (int c = 0; c < 3; ++c) {
-            dis += (pt_depth[c * nnum_depth + j] - pt_avg1[c]) * n_avg[c];
-          }
-          dis = fabsf(dis);
-          if (dis > distance_max1) distance_max1 = dis;
-        }
-
-        // the error from the averaged geometry to the original geometry
-        float distance_max2 = -1;
-        vector<float> vtx;
-        intersect_cube(vtx, pt_avg.data(), pt_base, n_avg.data());
-        if (vtx.empty()) distance_max2 = 5.0e10f; // !!! the degenerated case, ||n_avg|| == 0
-        for (auto& v : vtx) v *= scale;           // !!! note the scale
-        for (int k = 0; k < vtx.size() / 3; ++k) {
-          // min
-          float distance_min = 1.0e30f;
-          for (int j = didx_d[i]; j < didx_d[i] + dnum_d[i]; ++j) {
-            if (node_type(children_depth[j]) == kLeaf)  continue;
-            float dis = 0.0f;
-            for (int c = 0; c < 3; ++c) {
-              float ptc = pt_depth[c * nnum_depth + j] - vtx[3 * k + c];
-              dis += ptc * ptc;
-            }
-            dis = sqrtf(dis);
-            if (dis < distance_min) distance_min = dis;
-          }
-
-          // max
-          if (distance_min > distance_max2) distance_max2 = distance_min;
-        }
-
-        distance_err_d[i] = std::max<float>(distance_max2, distance_max1);
-      }
     }
   }
 }
+
+
+// compute the average signal for the last octree layer
+void Octree::avg_signal_implicit(Points& point_cloud, const vector<float>& pts_scaled,
+    const vector<uint32>& sorted_idx, const vector<uint32>& unique_idx) {
+
+  float ERROR_THRESHOLD = oct_info_.threshold_distance();
+   
+  const int depth_max = oct_info_.depth();
+  const int depth_adp = oct_info_.adaptive_layer();
+
+  const int channel_pt = 3;
+  const int channel_normal = 9;
+  const int channel_dis = 3;
+
+  // iterate over each depth layer
+  for (int d = depth_adp-1; d >= 0; d--) {
+    // number of nodes and point indices on depth
+    const int nnum_d = oct_info_.node_num(d);
+
+    const vector<int>& children = children_[d];
+    const vector<uint32>& key_d = keys_[d];
+
+    // data arrays for current depth layer
+    const vector<int>& children_d = children_[d];
+    vector<float>& normal_d = avg_normals_[d];
+    vector<float>& pt_d = avg_pts_[d];
+    vector<float>& displacement_d = displacement_[d];
+    vector<float>& normal_err_d = normal_err_[d];
+    vector<float>& distance_err_d = distance_err_[d];
+
+    // allocate memory for data arrays
+    normal_d.assign(nnum_d * channel_normal, 0.0f);
+    pt_d.assign(nnum_d * channel_pt, 0.0f);
+    displacement_d.assign(channel_dis * nnum_d, 0.0f);
+    normal_err_d.assign(nnum_d, 1.0e20f);   // !!! initialized
+    distance_err_d.assign(nnum_d, 1.0e20f);   // !!! as 1.0e20f
+
+    // iterate over all nodes at current depth
+    for (int i = 0; i < nnum_d; ++i) {
+
+      // average features of non empty children into parent nodes
+      if (node_type(children_d[i]) != kLeaf) {
+        // compute parent xyz
+        uint32 ptu_base[3];
+        compute_pt(ptu_base, key_d[i], d);
+
+        // iterate over children
+        int num_non_empty_children = 0;
+        for (int a = 0; a < oct_info_.node_num(d+1); a++) {
+          uint32 ptu_base2[3];
+          compute_pt(ptu_base2, keys_[d+1][a], d+1);
+
+          if (node_type(children_[d+1][a]) != kLeaf && ptu_base[0] == ptu_base2[0] / 2 && 
+                ptu_base[1] == ptu_base2[1] / 2 && ptu_base[2] == ptu_base2[2]/2) 
+          {
+            num_non_empty_children++;
+
+            for (int c = 0; c < 3; c++) {
+              // store surface center in displacement_d (0-3)
+              displacement_d[c * nnum_d + i] += displacement_[d+1][c * nnum_d + a];
+              // store surface in normal (0-3)
+              normal_d[c * nnum_d + i] = avg_normals_[d+1][c * nnum_d + a];
+            }
+
+            // store surface coefficients in normal (3-9)
+            for (int c = 0; c < 6; c++) {
+              normal_d[(c+3) * nnum_d + i] += avg_normals_[d+1][(c+3) * nnum_d + i];
+            }
+
+          }
+
+        }
+
+        // average all copied
+        for (int c = 0; c < 9; c++) {
+          if (c < 3) {
+            displacement_d[c * nnum_d + i] /= num_non_empty_children;
+          }
+          normal_d[c * nnum_d + i] /= num_non_empty_children;
+        }
+
+        normal_err_d[i] = ERROR_THRESHOLD + 1.0;
+        distance_err_d[i] = ERROR_THRESHOLD + 1.0;
+      }
+
+
+    }
+  }
+}
+
 
 void Octree::extrapolate_signal() {
   const int depth = oct_info_.depth();
@@ -893,8 +777,8 @@ void Octree::unique_key(vector<uintk>& keys, vector<uintk>& idx) {
 
   int n = keys.size(), j = 1;
   for (int i = 1; i < n; i++) {
-    if (keys[i] != keys[i - 1]) {
-      idx.push_back(i);
+    if (keys[i] != keys[i - 1]) { // only push back if current key != last key, unique because sorted
+      idx.push_back(i); // why push idx back?
       keys[j++] = keys[i];
     }
   }
@@ -1229,10 +1113,34 @@ void Octree::octree2pts(Points& point_cloud, int depth_start, int depth_end,
   point_cloud.set_points(pts, normals, vector<float>(), labels);
 }
 
+/*void Octree::export_points_scaled(std::string fname, vector<float> pts_scaled) {
+  const int depth = info_->depth();
+  const float* bbmin = info_->bbmin();
+  const float scale = info_->bbox_max_width() / float(1 << (depth));
+
+  std::ofstream objFile;
+  objFile.open(fname);
+
+  float pt[3] = {0,0,0};
+  float ct[3] = {-4.030212, 544.228516, 163.101822}; // only works if I have access to octree point center GOOD ENOUGH FOR NOW
+  for (int i = 0; i < pts_scaled.size(); i+=3) {
+
+    for (int c = 0; c < 3; c++) {
+      pt[c] = (pts_scaled[i+c] * scale) + bbmin[c] + ct[c];
+    }
+
+    objFile << "v " << pt[0] << " " << pt[1] << " " << pt[2] << std::endl;
+  }
+
+  objFile.close();
+}*/
+
+
 void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     int depth_end, bool rescale) const {
   const int depth = info_->depth();
   const float* bbmin = info_->bbmin();
+  const float* bbmax = info_->bbmax();
   const float kMul = info_->bbox_max_width() / float(1 << depth);
   valid_depth_range(depth_start, depth_end);
 
@@ -1241,46 +1149,53 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     const int* child_d = children_cpu(d);
     const int num = info_->node_num(d);
     const float scale = (1 << (depth - d)) * kMul;
+    const float cube_size = (1 << (depth - d));
 
-    vector<float> pts, normals, pts_ref;
+    int num_verts = V.size();
+
+    vector<float> pts, normals, pts_ref, coefs;
     for (int i = 0; i < num; ++i) {
+      //if (node_type(child_d[i]) == kInternelNode && d != depth) continue;
       if (node_type(child_d[i]) == kInternelNode && d != depth) continue;
 
-      float n[3], pt[3], pt_ref[3];
+      float n[3], pt[3], pt_ref[3], coef[6];
       node_normal(n, i, d);
-      float len = fabsf(n[0]) + fabsf(n[1]) + fabsf(n[2]);
-      if (len == 0) continue;
+      node_slim_coefficients(coef, i, d);
+      float len = fabs(n[0]) + fabs(n[1]) + fabs(n[2]);
+      if (len == 0) continue;             // if normal is zero cell has no surface
       node_pos(pt, i, d, pt_ref);
+      node_dis_xyz(pt, i, d);
 
+      Vector3f cell_base, surf_center, surf_normal;
       for (int c = 0; c < 3; ++c) {
-        normals.push_back(n[c]);
-        pts.push_back(pt[c]);
-        pts_ref.push_back(pt_ref[c]);
+        cell_base(c) = pt_ref[c] * cube_size;           // adjust cell base pos to global scale
+        surf_center(c) = cell_base(c) + 0.5*cube_size;  // adjust surfel center to global scale
+        surf_center(c) += pt[c] * cube_size;
+        surf_normal(c) = n[c];
       }
-    }
 
-    // run marching cube
-    vector<float> vtx;
-    vector<int> face;
-    marching_cube_octree(vtx, face, pts, pts_ref, normals);
-
-    // concate
-    int nv = V.size() / 3;
-    for (auto f : face) {
-      F.push_back(f + nv);
-    }
-
-    // rescale the vtx and concatenated to V
-    nv = vtx.size() / 3;
-    for (int i = 0; i < nv; ++i) {
-      for (int c = 0; c < 3; ++c) {
-        float vl = vtx[i * 3 + c];
-        if (rescale) {                     // !!! note the scale and bbmin
-          vl = vl * scale + bbmin[c];
-        }
-        V.push_back(vl);
+      MatrixXf surf_coefs(6,1);
+      for (int c = 0; c < 6; ++c) {
+        surf_coefs(c,0) = coef[c];
       }
+      
+      // render surface
+      polynomial2::sample_surface_along_normal_rt(&V, &F, cell_base, cube_size, 8, surf_center, surf_normal, surf_coefs);
     }
+
+  }
+
+  // TODO fix this
+  // rescale verts to fit to point cloud
+  /*for (int i = num_verts; i < V.size()/3; i+=3) {
+    for(int j=0; j<3;j++){
+      V[i+j] = V[i+j]/scale + bbmin[j];
+    }
+  }*/
+
+  // fix vertex indexing: indices have to start at 0, because write_obj takes care of it later
+  for (int i = 0; i < F.size(); i++) {
+    F[i] -= 1;
   }
 }
 

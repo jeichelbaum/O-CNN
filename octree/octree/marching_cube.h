@@ -2,6 +2,7 @@
 #define MARCHIING_CUBE_H_
 
 #include <vector>
+#include <eigen3/Eigen/Dense>
 
 using std::vector;
 
@@ -24,6 +25,7 @@ class MarchingCube {
   vector<float> vtx_;
   vector<int> face_;
 
+
  protected:
   const float* fval_;
   float iso_value_;
@@ -41,6 +43,7 @@ class MarchingCube {
 // two convenient interfaces
 void marching_cube_octree(vector<float>& V, vector<int>& F, const vector<float>& pts,
     const vector<float>& pts_ref, const vector<float>& normals);
+
 void intersect_cube(vector<float>& V, const float* pt, const float* pt_base,
     const float* normal);
 

@@ -13,7 +13,7 @@ const char OctreeInfo::kMagicStr[16] = "_OCTREE_1.0_";
 void OctreeInfo::initialize(int depth, int full_depth, bool node_displacement,
     bool node_feature, bool split_label, bool adaptive, int adaptive_depth,
     float threshold_distance, float threshold_normal, bool key2xyz,
-    bool extrapolate, bool save_pts, const Points& points) {
+    bool extrapolate, bool save_pts, bool implicit, const Points& points) {
   set_batch_size(1);
   set_depth(depth);
   set_full_layer(full_depth);
@@ -22,6 +22,7 @@ void OctreeInfo::initialize(int depth, int full_depth, bool node_displacement,
   set_node_dis(node_displacement);
   set_key2xyz(key2xyz);
   set_extraplate(extrapolate);
+  set_implicit(implicit);
   set_save_points(save_pts);
   set_threshold_normal(threshold_normal);
   set_threshold_dist(threshold_distance);
@@ -48,9 +49,18 @@ void OctreeInfo::initialize(int depth, int full_depth, bool node_displacement,
     // octree node (3 channels) are saved replacing normal
     if (pt_info.channel(PointsInfo::kNormal) == 0) channel += 3;
   }
+
   if (save_pts) {
     channel += 3; // save the average points as features
   }
+
+  if (has_implicit()) {
+    channel += 8; // channel settings still weird to me
+  }
+
+  // HARD CODED HACK
+  channel = 12; // surface normal (3), slim2 (6), surface center (3)
+
   set_channel(OctreeInfo::kFeature, channel);
   // location = -1 means the features exist on every node
   int location = (node_feature || adaptive) ? -1 : depth;
