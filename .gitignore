@@ -9,8 +9,7 @@ caffe-official
 *.zip
 caffe/experiments/dataset
 caffe/experiments/models
-caffe/experiments/ae_output
-caffe/experiments/ae_output_baseline
+caffe/experiments/ae_output*
 caffe/experiments/models
 tensorflow/script/dataset
 tensorflow/script/logs
