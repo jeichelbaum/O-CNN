@@ -346,7 +346,7 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
 
   float ERROR_NORMAL = oct_info_.threshold_normal();
   float ERROR_DISTANCE = oct_info_.threshold_distance();
-   
+
   const int depth_max = oct_info_.depth();
   const int depth_adp = oct_info_.adaptive_layer();
   const int nnum_depth = oct_info_.node_num(depth_max);
@@ -887,8 +887,7 @@ void Octree::trim_octree() {
           // distance_err_[d][i] is equal to 1.0e20f, so if it enters the following
           // "if" body, the node_type(children_d[idx]) must be kInternelNode
           //if (distance_err_[d][idx] < th_dist) {
-          if ((!has_dis || (has_dis && distance_err_[d][idx] < th_dist)) &&
-              normal_err_[d][idx] < th_norm) {
+          if (distance_err_[d][idx] < th_dist && normal_err_[d][idx] < th_norm) {
             drop_d[idx] = kDropChildren;
           }
         } else {
