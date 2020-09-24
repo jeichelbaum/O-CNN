@@ -1114,12 +1114,6 @@ layer {
   }
 }
 layer {
-  name: "Normalize1"
-  type: "Normalize"
-  bottom: "Slice1"
-  top: "Normalize1"
-}
-layer {
   name: "Slice3"
   type: "Slice"
   bottom: "OctreeMask2"
@@ -1133,7 +1127,7 @@ layer {
 layer {
   name: "Loss4"
   type: "EuclideanLoss"
-  bottom: "Normalize1"
+  bottom: "Slice1"
   bottom: "Slice3"
   top: "Loss4"
   loss_weight: 0.2
@@ -1355,12 +1349,6 @@ layer {
   }
 }
 layer {
-  name: "Normalize2"
-  type: "Normalize"
-  bottom: "Slice5"
-  top: "Normalize2"
-}
-layer {
   name: "Slice7"
   type: "Slice"
   bottom: "OctreeMask4"
@@ -1374,7 +1362,7 @@ layer {
 layer {
   name: "Loss7"
   type: "EuclideanLoss"
-  bottom: "Normalize2"
+  bottom: "Slice5"
   bottom: "Slice7"
   top: "Loss7"
   loss_weight: 0.2
@@ -1596,12 +1584,6 @@ layer {
   }
 }
 layer {
-  name: "Normalize3"
-  type: "Normalize"
-  bottom: "Slice9"
-  top: "Normalize3"
-}
-layer {
   name: "Slice11"
   type: "Slice"
   bottom: "OctreeMask6"
@@ -1615,7 +1597,7 @@ layer {
 layer {
   name: "Loss10"
   type: "EuclideanLoss"
-  bottom: "Normalize3"
+  bottom: "Slice9"
   bottom: "Slice11"
   top: "Loss10"
   loss_weight: 0.2
@@ -1837,12 +1819,6 @@ layer {
   }
 }
 layer {
-  name: "Normalize4"
-  type: "Normalize"
-  bottom: "Slice13"
-  top: "Normalize4"
-}
-layer {
   name: "Slice15"
   type: "Slice"
   bottom: "OctreeMask8"
@@ -1856,7 +1832,7 @@ layer {
 layer {
   name: "Loss13"
   type: "EuclideanLoss"
-  bottom: "Normalize4"
+  bottom: "Slice13"
   bottom: "Slice15"
   top: "Loss13"
   loss_weight: 0.2

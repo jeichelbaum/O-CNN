@@ -1148,12 +1148,6 @@ layer {
   }
 }
 layer {
-  name: "Normalize1"
-  type: "Normalize"
-  bottom: "Slice1"
-  top: "Normalize1"
-}
-layer {
   name: "TanH2"
   type: "TanH"
   bottom: "Slice2"
@@ -1162,7 +1156,7 @@ layer {
 layer {
   name: "Concat1"
   type: "Concat"
-  bottom: "Normalize1"
+  bottom: "Slice1"
   bottom: "TanH2"
   top: "Concat1"
   concat_param {
@@ -1378,12 +1372,6 @@ layer {
   }
 }
 layer {
-  name: "Normalize2"
-  type: "Normalize"
-  bottom: "Slice3"
-  top: "Normalize2"
-}
-layer {
   name: "TanH3"
   type: "TanH"
   bottom: "Slice4"
@@ -1392,7 +1380,7 @@ layer {
 layer {
   name: "Concat2"
   type: "Concat"
-  bottom: "Normalize2"
+  bottom: "Slice3"
   bottom: "TanH3"
   top: "Concat2"
   concat_param {
@@ -1607,12 +1595,6 @@ layer {
   }
 }
 layer {
-  name: "Normalize3"
-  type: "Normalize"
-  bottom: "Slice5"
-  top: "Normalize3"
-}
-layer {
   name: "TanH4"
   type: "TanH"
   bottom: "Slice6"
@@ -1621,7 +1603,7 @@ layer {
 layer {
   name: "Concat3"
   type: "Concat"
-  bottom: "Normalize3"
+  bottom: "Slice5"
   bottom: "TanH4"
   top: "Concat3"
   concat_param {
@@ -1836,12 +1818,6 @@ layer {
   }
 }
 layer {
-  name: "Normalize4"
-  type: "Normalize"
-  bottom: "Slice7"
-  top: "Normalize4"
-}
-layer {
   name: "TanH5"
   type: "TanH"
   bottom: "Slice8"
@@ -1850,7 +1826,7 @@ layer {
 layer {
   name: "Concat4"
   type: "Concat"
-  bottom: "Normalize4"
+  bottom: "Slice7"
   bottom: "TanH5"
   top: "Concat4"
   concat_param {
