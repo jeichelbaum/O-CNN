@@ -26,7 +26,7 @@ ae_out_dir = "ae_output_slim2car/"
 output_dir = os.path.join(os.getcwd(), ae_out_dir)
 
 
-num_in = 64
+num_in = 0
 
 
 ###             INPUT POINT CLOUDS
@@ -36,12 +36,14 @@ categories = [int(f.split(" ")[-1]) for f in files_input[:-1]]
 files_octree_in = [os.path.join(octree_dir, f) for f in files_input]
 
 files_octree_in = [os.path.join(octree_dir, f[:f.index("000.octree")+10]) for f in files_input if "000.octree" in f]
-files_octree_in = files_octree_in[:num_in]
+if num_in > 0:
+    files_octree_in = files_octree_in[:num_in]
 
 
 files_input = [f[:f.index("000.octree")-5] for f in files_input if "000.octree" in f]
 files_input = [os.path.join(points_dir, f.replace("octree", "points") + ".points") for f in files_input]
-files_input = files_input[:num_in]
+if num_in > 0:
+    files_input = files_input[:num_in]
 
 # copy and normalize input point cloud so chamfer distance is calculated properly
 files_input_norm = [os.path.join(output_dir, "%s_input.points" % str(i).zfill(5)) for i in range(len(files_input))]
