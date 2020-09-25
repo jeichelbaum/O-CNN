@@ -1109,7 +1109,7 @@ layer {
   top: "Slice1"
   top: "Slice2"
   slice_param {
-    slice_point: 9
+    slice_point: 4
     axis: 1
   }
 }
@@ -1120,7 +1120,7 @@ layer {
   top: "Slice3"
   top: "Slice4"
   slice_param {
-    slice_point: 9
+    slice_point: 4
     axis: 1
   }
 }
@@ -1130,7 +1130,7 @@ layer {
   bottom: "Slice1"
   bottom: "Slice3"
   top: "Loss4"
-  loss_weight: 0.2
+  loss_weight: 2.0
   propagate_down: true
   propagate_down: false
   loss_param {
@@ -1344,7 +1344,7 @@ layer {
   top: "Slice5"
   top: "Slice6"
   slice_param {
-    slice_point: 9
+    slice_point: 4
     axis: 1
   }
 }
@@ -1355,7 +1355,7 @@ layer {
   top: "Slice7"
   top: "Slice8"
   slice_param {
-    slice_point: 9
+    slice_point: 4
     axis: 1
   }
 }
@@ -1365,7 +1365,7 @@ layer {
   bottom: "Slice5"
   bottom: "Slice7"
   top: "Loss7"
-  loss_weight: 0.2
+  loss_weight: 2.0
   propagate_down: true
   propagate_down: false
   loss_param {
@@ -1579,7 +1579,7 @@ layer {
   top: "Slice9"
   top: "Slice10"
   slice_param {
-    slice_point: 9
+    slice_point: 4
     axis: 1
   }
 }
@@ -1590,7 +1590,7 @@ layer {
   top: "Slice11"
   top: "Slice12"
   slice_param {
-    slice_point: 9
+    slice_point: 4
     axis: 1
   }
 }
@@ -1600,7 +1600,7 @@ layer {
   bottom: "Slice9"
   bottom: "Slice11"
   top: "Loss10"
-  loss_weight: 0.2
+  loss_weight: 2.0
   propagate_down: true
   propagate_down: false
   loss_param {
@@ -1814,7 +1814,7 @@ layer {
   top: "Slice13"
   top: "Slice14"
   slice_param {
-    slice_point: 9
+    slice_point: 4
     axis: 1
   }
 }
@@ -1825,7 +1825,7 @@ layer {
   top: "Slice15"
   top: "Slice16"
   slice_param {
-    slice_point: 9
+    slice_point: 4
     axis: 1
   }
 }
@@ -1835,7 +1835,7 @@ layer {
   bottom: "Slice13"
   bottom: "Slice15"
   top: "Loss13"
-  loss_weight: 0.2
+  loss_weight: 2.0
   propagate_down: true
   propagate_down: false
   loss_param {

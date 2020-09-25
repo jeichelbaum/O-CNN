@@ -26,18 +26,18 @@ convert_image = os.path.join(root_caffe, 'convert_imageset')
 
 category = [
   '02691156',
-  '02828884',
-  '02933112',
-  '02958343',
-  '03001627', 
-  '03211117',
-  '03636649',
-  '03691459',
-  '04090263',
-  '04256520',
-  '04379243',
-  '04401088',
-  '04530566'
+  #'02828884',
+  #'02933112',
+  #'02958343',
+  #'03001627', 
+  #'03211117',
+  #'03636649',
+  #'03691459',
+  #'04090263',
+  #'04256520',
+  #'04379243',
+  #'04401088',
+  #'04530566'
 ]
 
 
@@ -100,7 +100,7 @@ for i in range(0, len(category)):
     subprocess.check_call(
       [octree, '--filenames', filename_list, '--output_path', path_octree, 
       '--adp_depth', '4', '--depth', str(depth),
-      '--adaptive', '1', '--th_distance', '0.7', '--th_normal', '0.7', 
+      '--adaptive', '1', '--th_distance', '2.0', '--th_normal', '5.0', 
       '--node_dis', '1', '--split_label', '1']
     )
 
