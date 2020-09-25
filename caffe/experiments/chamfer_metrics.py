@@ -12,7 +12,7 @@ points2obj = "~/dev/implicit_ocnn/build/points2obj"
 chamfer_dist = "~/dev/O-CNN/octree/build/chamfer_distance"
 
 # input 
-dataset = "ae74_quad2_car"
+dataset = "ae74_slim2_car"
 points_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/baseline/"
 octree_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/2_octree/%s/" % dataset
 filelist_input = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/%s/oct_test_shuffle.txt" %dataset
@@ -21,12 +21,12 @@ filelist_input = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/%s/oct_te
 depth = 7
 offset = 0.55
 model = "ae_7_4.test.prototxt"
-weights = "ae74.train_iter_228000.caffemodel"
-ae_out_dir = "ae_output/"
+weights = "ae74.slim2.car.caffemodel"
+ae_out_dir = "ae_output_slim2car/"
 output_dir = os.path.join(os.getcwd(), ae_out_dir)
 
 
-num_in = 10
+num_in = 64
 
 
 ###             INPUT POINT CLOUDS
@@ -62,7 +62,7 @@ with open(file_list_points_in, 'w') as flist:
 # generate auto encoder output
 num_iters = len(files_input)
 cmd = "%s test --model=%s --weights=%s --blob_prefix=%s --blob_header=false --iterations=%d" % (caffe, model, weights, ae_out_dir, num_iters)
-#os.system(cmd)
+os.system(cmd)
 
 
 
