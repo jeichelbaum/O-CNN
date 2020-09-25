@@ -1130,7 +1130,7 @@ layer {
   bottom: "Slice1"
   bottom: "Slice3"
   top: "Loss4"
-  loss_weight: 2.0
+  loss_weight: 1
   propagate_down: true
   propagate_down: false
   loss_param {
@@ -1365,7 +1365,7 @@ layer {
   bottom: "Slice5"
   bottom: "Slice7"
   top: "Loss7"
-  loss_weight: 2.0
+  loss_weight: 1
   propagate_down: true
   propagate_down: false
   loss_param {
@@ -1600,7 +1600,7 @@ layer {
   bottom: "Slice9"
   bottom: "Slice11"
   top: "Loss10"
-  loss_weight: 2.0
+  loss_weight: 1
   propagate_down: true
   propagate_down: false
   loss_param {
@@ -1835,7 +1835,7 @@ layer {
   bottom: "Slice13"
   bottom: "Slice15"
   top: "Loss13"
-  loss_weight: 2.0
+  loss_weight: 1
   propagate_down: true
   propagate_down: false
   loss_param {
