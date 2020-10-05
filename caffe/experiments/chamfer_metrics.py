@@ -26,7 +26,7 @@ ae_out_dir = "ae_output_quad3_airplane/"
 output_dir = os.path.join(os.getcwd(), ae_out_dir)
 
 
-num_in = 20
+num_in = 0 
 
 
 ###             INPUT POINT CLOUDS
@@ -66,7 +66,7 @@ with open(file_list_points_in, 'w') as flist:
 # generate auto encoder output
 num_iters = len(files_input)
 cmd = "%s test --model=%s --weights=%s --blob_prefix=%s --blob_header=false --iterations=%d" % (caffe, model, weights, ae_out_dir, num_iters)
-os.system(cmd)
+#os.system(cmd)
 
 
 
@@ -90,7 +90,7 @@ if True:
     # convert octree2mesh
     cmd = "%s --filenames %s --output_path %s --pu 0 --depth_start 0" % (octree2mesh, file_list_octree, ae_out_dir)
     print(cmd)
-    os.system(cmd)
+    #os.system(cmd)
 
     # convert mesh2points
     cmd = "%s --filenames %s --output_path %s --area_unit 1.0" % (mesh2points, os.path.join(os.getcwd(), "list_mesh.txt"), ae_out_dir)
