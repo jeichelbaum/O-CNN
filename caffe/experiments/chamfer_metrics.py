@@ -34,7 +34,6 @@ num_in = 0
 files_input = open(filelist_input, 'r').read().split('\n')
 categories = [int(f.split(" ")[-1]) for f in files_input[:-1]]
 files_octree_in = [os.path.join(octree_dir, f) for f in files_input]
-
 files_octree_in = [os.path.join(octree_dir, f[:f.index("000.octree")+10]) for f in files_input if "000.octree" in f]
 
 if num_in > 0:
@@ -46,6 +45,8 @@ files_input = [os.path.join(points_dir, f.replace("octree", "points") + ".points
 
 if num_in > 0:
     files_input = files_input[:num_in]
+
+print(len(files_input))
 
 # copy and normalize input point cloud so chamfer distance is calculated properly
 files_input_norm = [os.path.join(output_dir, "%s_input.points" % str(i).zfill(5)) for i in range(len(files_input))]
@@ -59,14 +60,11 @@ with open(file_list_points_in, 'w') as flist:
     flist.write("\n".join(files_input_norm))
 
 
-
-
-
 ###             AUTO ENCODER
 # generate auto encoder output
 num_iters = len(files_input)
 cmd = "%s test --model=%s --weights=%s --blob_prefix=%s --blob_header=false --iterations=%d" % (caffe, model, weights, ae_out_dir, num_iters)
-#os.system(cmd)
+os.system(cmd)
 
 
 
@@ -90,7 +88,7 @@ if True:
     # convert octree2mesh
     cmd = "%s --filenames %s --output_path %s --pu 0 --depth_start 0" % (octree2mesh, file_list_octree, ae_out_dir)
     print(cmd)
-    #os.system(cmd)
+    os.system(cmd)
 
     # convert mesh2points
     cmd = "%s --filenames %s --output_path %s --area_unit 1.0" % (mesh2points, os.path.join(os.getcwd(), "list_mesh.txt"), ae_out_dir)
