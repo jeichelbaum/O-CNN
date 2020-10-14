@@ -7,7 +7,7 @@ layer {
   }
   data_param {
     source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_quad3/train_aug"
-    batch_size: 32
+    batch_size: 4
     backend: LMDB
   }
   octree_param {
@@ -24,7 +24,7 @@ layer {
   }
   data_param {
     source: "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_quad3/test"
-    batch_size: 32
+    batch_size: 4
     backend: LMDB
   }
   octree_param {
