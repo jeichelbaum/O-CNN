@@ -23,12 +23,16 @@ using Eigen::Vector3f;
 using Eigen::VectorXf;
 using Eigen::MatrixXf;
 
+
 class polynomial2 {
  public:
     static float eval_quadric(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs);
+    static Eigen::MatrixXf eval_quadric_fast(Eigen::MatrixXf points_local, Eigen::VectorXf coefs);
 
     static void visualize_quadric(vector<float>* verts, vector<int>* faces, Eigen::Vector3f base, float size, int n_sub,
             Eigen::Vector3f quadric_center, Eigen::VectorXf quadric_coefs);
+
+    static void sample_quadric(vector<float>* verts, Eigen::Vector3f base, float scale, vector<vector<vector<int>>> idx, Eigen::MatrixXf points_local, Eigen::VectorXf quadric_coefs);
 
     static float calc_taubin_dist(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs);
 
@@ -65,6 +69,10 @@ class Polynomial2Approx {
         int SURFACE_SAMPLING_RESOLUTION = 5;
         float COEFS_CLAMP = 10.0;
 
+        float mc_cell_size = 0;
+        Eigen::MatrixXf mc_points;
+        vector<vector<vector<int>>> mc_indices;
+
         Points pts;
         pcl::PointCloud<pcl::PointXYZ>* cloud;
         pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>* octree;
@@ -72,6 +80,8 @@ class Polynomial2Approx {
         int depth_max;
         vector<int> nnum_all;
         vector<vector<bool>> ptr_well_approx;
+
+        void setup_mc_grid(float cell_size);
 };
 
 #endif // POLYNOMIAL2_H_

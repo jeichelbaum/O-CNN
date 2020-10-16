@@ -10,6 +10,34 @@ float polynomial2::eval_quadric(Eigen::Vector3f point, Eigen::Vector3f center, f
         + coefs(7) * p(1)*p(1) + coefs(8) * p(1)*p(2) + coefs(9) * p(2)*p(2); 
 }
 
+Eigen::MatrixXf polynomial2::eval_quadric_fast(Eigen::MatrixXf points_local, Eigen::VectorXf coefs)
+{
+    int npt = points_local.rows();
+    Eigen::ArrayXf ones = Eigen::ArrayXf::Ones(npt);
+
+    // ---- polynomial
+    Eigen::MatrixXf b = Eigen::MatrixXf::Zero(npt, 10);
+
+    //  1 + x + y + z
+    b.col(0) = coefs[0] * ones;
+    b.col(1) = coefs[1] * points_local.col(0).array();
+    b.col(2) = coefs[2] * points_local.col(1).array();
+    b.col(3) = coefs[3] * points_local.col(2).array();
+
+    // xx + xy + xz
+    b.col(4) = coefs[4] * points_local.col(0).array() * points_local.col(0).array();
+    b.col(5) = coefs[5] * points_local.col(0).array() * points_local.col(1).array();
+    b.col(6) = coefs[6] * points_local.col(0).array() * points_local.col(2).array();
+
+    // yy + yz + zz
+    b.col(7) = coefs[7] * points_local.col(1).array() * points_local.col(1).array();
+    b.col(8) = coefs[8] * points_local.col(1).array() * points_local.col(2).array();
+    b.col(9) = coefs[9] * points_local.col(2).array() * points_local.col(2).array();
+
+    // sum polynomial components
+    return b.rowwise().sum();
+}
+
 void polynomial2::visualize_quadric(vector<float>* verts, vector<int>* faces, Eigen::Vector3f base, float size, int n_sub,
     Eigen::Vector3f quadric_center, Eigen::VectorXf quadric_coefs)     
 {
@@ -48,6 +76,61 @@ void polynomial2::visualize_quadric(vector<float>* verts, vector<int>* faces, Ei
     }
 }
 
+void polynomial2::sample_quadric(vector<float>* verts, Eigen::Vector3f base, float scale, vector<vector<vector<int>>> idx, Eigen::MatrixXf points_local, Eigen::VectorXf quadric_coefs)
+{
+    /*int res = idx.size();
+    auto grid = eval_quadric_fast(points_local, quadric_coefs);
+
+    vector<float> verts_ = *verts;
+    verts->resize(res*res*res*3);
+    int num = 0;
+
+    float dist;
+    float lerp;
+
+    // eval 3 edges per vertex
+    for (int x = 0; x < res; x++) {
+        for (int y = 0; x < res; x++) {
+            for (int z = 0; x < res; x++) {
+                if (x+1 < res && signbit(grid(idx[x][y][z])) != signbit(grid(idx[x+1][y][z])) ) {
+                    dist = (grid(idx[x+1][y][z], 0) - grid(idx[x][y][z], 0));
+                    lerp = -(grid(idx[x][y][z], 0) / dist);
+                    verts_[num] = points_local(idx[x][y][z], 0) + lerp * dist;
+                    verts_[num+1] = points_local(idx[x][y][z], 1);
+                    verts_[num+2] = points_local(idx[x][y][z], 2);
+                    num+=3;
+                }    
+
+                if (y+1 < res && signbit(grid(idx[x][y][z])) != signbit(grid(idx[x][y+1][z])) ) {
+                    dist = (grid(idx[x][y+1][z], 0) - grid(idx[x][y][z], 0));
+                    lerp = -(grid(idx[x][y][z], 0) / dist);
+                    verts_[num] = points_local(idx[x][y][z], 0);
+                    verts_[num+1] = points_local(idx[x][y][z], 1) + lerp * dist;
+                    verts_[num+2] = points_local(idx[x][y][z], 2);
+                    num+=3;
+                }    
+
+                if (z+1 < res && signbit(grid(idx[x][y][z])) != signbit(grid(idx[x][y][z+1])) ) {
+                    dist = (grid(idx[x][y][z+1], 0) - grid(idx[x][y][z], 0));
+                    lerp = -(grid(idx[x][y][z], 0) / dist);
+                    verts_[num] = points_local(idx[x][y][z], 0);
+                    verts_[num+1] = points_local(idx[x][y][z], 1);
+                    verts_[num+2] = points_local(idx[x][y][z], 2) + lerp * dist;
+                    num+=3;
+                }    
+            }
+        }
+    }
+
+    // resize vert array and rescale points
+    verts->resize(num);
+    for (int v = 0; v < num; v+=3) {
+        verts_[v] = base(0) + scale * verts_[v];
+        verts_[v+1] = base(1) + scale * verts_[v+1];
+        verts_[v+2] = base(2) + scale * verts_[v+2];
+    }*/
+}
+
 
 float polynomial2::calc_taubin_dist(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs)
 {
@@ -67,28 +150,7 @@ float polynomial2::calc_taubin_dist_fast(Eigen::MatrixXf points_local, Eigen::Ve
 {
     int npt = points_local.rows();
     Eigen::ArrayXf ones = Eigen::ArrayXf::Ones(npt);
-
-    // ---- polynomial
-    Eigen::MatrixXf b = Eigen::MatrixXf::Zero(npt, 10);
-
-    //  1 + x + y + z
-    b.col(0) = coefs[0] * ones;
-    b.col(1) = coefs[1] * points_local.col(0).array();
-    b.col(2) = coefs[2] * points_local.col(1).array();
-    b.col(3) = coefs[3] * points_local.col(2).array();
-
-    // xx + xy + xz
-    b.col(4) = coefs[4] * points_local.col(0).array() * points_local.col(0).array();
-    b.col(5) = coefs[5] * points_local.col(0).array() * points_local.col(1).array();
-    b.col(6) = coefs[6] * points_local.col(0).array() * points_local.col(2).array();
-
-    // yy + yz + zz
-    b.col(7) = coefs[7] * points_local.col(1).array() * points_local.col(1).array();
-    b.col(8) = coefs[8] * points_local.col(1).array() * points_local.col(2).array();
-    b.col(9) = coefs[9] * points_local.col(2).array() * points_local.col(2).array();
-
-    // sum polynomial components
-    auto f = b.rowwise().sum().rowwise().norm();
+    Eigen::VectorXf f = eval_quadric_fast(points_local, coefs).rowwise().norm();
 
     // ---- gradient
     Eigen::MatrixXf grad = Eigen::MatrixXf::Zero(npt, 3);
@@ -111,22 +173,10 @@ float polynomial2::calc_taubin_dist_fast(Eigen::MatrixXf points_local, Eigen::Ve
     // evaluate taubin distances
     auto t = f.col(0).array() / g.col(0).array();
 
-    /*if (npt == 3) {
-        std::cout << "-> poly" << std::endl;
-        std::cout << b << std::endl;
-        std::cout << f.transpose() << std::endl;
-        std::cout << "-> grad" << std::endl;
-        std::cout << grad << std::endl;
-        std::cout << g << std::endl;
-        std::cout << "-> taubin" << std::endl;
-        std::cout << t << std::endl;
-    }*/
-
     // select max taubin distance
     return t.maxCoeff();
     // avg taubin distance
-    return t.sum() / npt;
-
+    //return t.sum() / npt;
 }
 
 Polynomial2Approx::Polynomial2Approx (Points& point_cloud, const float* bbmin, const float mul) {
@@ -151,8 +201,33 @@ Polynomial2Approx::Polynomial2Approx (Points& point_cloud, const float* bbmin, c
     octree = (new pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>(1.0f));
     octree->setInputCloud ((pcl::PointCloud<pcl::PointXYZ>::Ptr)cloud);
     octree->addPointsFromInputCloud ();
+
+    // setup marching cubes grid
+    setup_mc_grid(1.0f);
 }
 
+void Polynomial2Approx::setup_mc_grid(float cell_size)
+{
+    mc_cell_size = cell_size;
+
+    int res = SURFACE_SAMPLING_RESOLUTION;
+    float step = mc_cell_size / (res-1);
+    mc_points = Eigen::MatrixXf::Zero(res*res*res, 3);
+    mc_indices = vector<vector<vector<int>>>(res, vector<vector<int>>(res, vector<int>(res)));
+
+    Eigen::Vector3f mc_base = Eigen::Vector3f(-0.5*mc_cell_size, -0.5*mc_cell_size, -0.5*mc_cell_size);
+    Eigen::Vector3f mc_pos;
+
+    for (int i = 0; i < mc_points.rows(); i++) {
+        int x = floor(i / (res*res));
+        int y = int(floor(i / res)) % res;
+        int z = i % res;
+        mc_indices[x][y][z] = i;
+
+        mc_pos = Eigen::Vector3f(float(x), float(y), float(z));
+        mc_points.row(i) = mc_base + step * mc_pos;
+    }
+}
 
 // init memory for approximation tracker
 void Polynomial2Approx::init_parent_approx_tracking(int depth_max_) {
@@ -195,6 +270,7 @@ bool Polynomial2Approx::parent_well_approximated(int cur_depth, int* xyz)
 // returns bool: surface_well_approximated
 bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, float support_radius, float error_p2q, float error_q2p)
 {
+
     // reset output variables
     npt = 0;
     error_max_surface_points_dist = numeric_limits<float>::max();
@@ -332,6 +408,7 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         vector<float> surf_edge_samples;
         vector<int> faces;
         polynomial2::visualize_quadric(&surf_edge_samples, &faces, cell_base, cell_size, SURFACE_SAMPLING_RESOLUTION, surf_center, surf_coefs);
+        //polynomial2::sample_quadric(&surf_edge_samples, cell_base, cell_size, mc_indices, mc_points, surf_coefs);
 
         // calc max distance from surface sample to point cloud
         float surface_point_dist = surf_edge_samples.size() == 0 ? numeric_limits<float>::max() : 0;
