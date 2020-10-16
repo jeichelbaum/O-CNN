@@ -247,59 +247,52 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
 
         // quadric design matrix
         int n_constraints = 4;
+        Eigen::VectorXf t_ones =  Eigen::VectorXf::Ones(npt);
         Eigen::MatrixXf b = Eigen::MatrixXf::Zero(npt*n_constraints, 10);
         Eigen::VectorXf f = Eigen::VectorXf::Zero(npt*n_constraints);
         Eigen::VectorXf wN = Eigen::VectorXf::Ones(npt*n_constraints);
 
-        for (std::size_t i = 0; i < npt; ++i)
-        {
-            int iN = i*n_constraints;
+        // --- polynomial in first npt block
+        // block(i,j, a,b)      -> i,j = indices        -> a, b = block size
+        b.block(0, 0, npt, 1) = t_ones;
+        b.block(0, 1, npt, 1) = points.col(0);
+        b.block(0, 2, npt, 1) = points.col(1);
+        b.block(0, 3, npt, 1) = points.col(2);
 
-            // weights
-            wN(iN, 0) = 1.0;
-            wN(iN+1, 0) = wN(iN+2, 0) = wN(iN+3, 0) = 0.33;
+        b.block(0, 4, npt, 1) = points.col(0).array() * points.col(0).array();
+        b.block(0, 5, npt, 1) = points.col(0).array() * points.col(1).array();
+        b.block(0, 6, npt, 1) = points.col(0).array() * points.col(2).array();
 
-            // function values
-            f(iN) = 0;
-        
-            f(iN+1) = normals(i, 0);
-            f(iN+2) = normals(i, 1);
-            f(iN+3) = normals(i, 2);
+        b.block(0, 7, npt, 1) = points.col(1).array() * points.col(1).array();
+        b.block(0, 8, npt, 1) = points.col(1).array() * points.col(2).array();
+        b.block(0, 9, npt, 1) = points.col(1).array() * points.col(2).array();
 
-            // design matrix    -   quadric
-            Eigen::Vector3f p = points.row(i);
+        //f.block(0, 0, npt, 1) = 0;        already zero set by constructor
+        //wN.segment(0, npt) = t_ones;      already one set by constructor
 
-            b(iN, 0) = 1;                               // 1
-            b(iN, 1) = p(0);                    // x
-            b(iN, 2) = p(1);                    // y
-            b(iN, 3) = p(2);                    // z
+        // --- x gradient in second npt block
 
-            b(iN, 4) = p(0)*p( 0);       // xx
-            b(iN, 5) = p(0)*p(1);       // xy
-            b(iN, 6) = p(0)*p(2);       // xz
+        b.block(1*npt, 1, npt, 1) = t_ones;
+        b.block(1*npt, 4, npt, 1) = 2 * points.col(0).array();
+        b.block(1*npt, 5, npt, 1) = points.col(1).array();
+        b.block(1*npt, 6, npt, 1) = points.col(2).array();
 
-            b(iN, 7) = p(1)*p(1);       // yy
-            b(iN, 8) = p(1)*p(2);       // yz
-            b(iN, 9) = p(2)*p(2);       // zz
+        // --- y gradient in second npt block
+        b.block(2*npt, 2, npt, 1) = t_ones;
+        b.block(2*npt, 5, npt, 1) = points.col(0).array();
+        b.block(2*npt, 7, npt, 1) = 2*points.col(1).array();
+        b.block(2*npt, 8, npt, 1) = points.col(2).array();
 
-            
-            // design matrix    -   constraint px
-            b(iN+1, 1) = 1;
-            b(iN+1, 3) = 2*points(i, 0);
-            b(iN+1, 4) = points(i, 1);
-            b(iN+1, 5) = points(i, 2);
+        // --- z gradient in second npt block
+        b.block(3*npt, 3, npt, 1) = t_ones;
+        b.block(3*npt, 6, npt, 1) = points.col(0).array();
+        b.block(3*npt, 8, npt, 1) = points.col(1).array();
+        b.block(3*npt, 9, npt, 1) = 2*points.col(2).array();
 
-            // design matrix    -   constraint py
-            b(iN+2, 2) = 1;
-            b(iN+2, 5) = points(i, 0);
-            b(iN+2, 7) = 2*points(i, 1);
-            b(iN+2, 8) = points(i, 2);
-
-            // design matrix    -   constraint pz
-            b(iN+3, 3) = 1;
-            b(iN+3, 6) = points(i, 0);
-            b(iN+3, 8) = points(i, 1);
-            b(iN+3, 9) = 2*points(i, 2);
+        // gradient weights and function values
+        for (int c = 0; c < 3; c++) {
+            wN.segment((c+1)*npt, npt) *= 0.33f;
+            f.block((c+1)*npt, 0, npt, 1) = normals.col(c);        
         }
 
 
@@ -322,13 +315,6 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         }
 
         auto start_taubin = system_clock::now();
-
-        /*Eigen::MatrixXf testp = Eigen::MatrixXf::Ones(3, 3);
-        testp(0,0) = 0.0; testp(0,1) = -1.0; testp(0,2) = 0.0; 
-        testp(1,0) = -1.0; testp(1,1) = 0.0; testp(1,2) = 0.5; 
-        testp(2,0) = 2.0; testp(2,1) = 0.0; testp(2,2) = 0.0; 
-        Eigen::VectorXf testc = Eigen::VectorXf::Ones(10);
-        testc(4) = testc(5) = testc(6) = testc(7) = testc(8) = -1.0;*/
 
         // calc point2surface via taubin distance
         // return false if surface to point cloud distance is bigger than error threshold
