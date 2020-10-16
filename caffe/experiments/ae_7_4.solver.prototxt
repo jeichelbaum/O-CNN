@@ -19,23 +19,23 @@ weight_decay: 0.0005
 lr_policy: "multistep"
 gamma: 0.1
 # stepsize: 100000
-stepvalue: 400000
-stepvalue: 800000
-stepvalue: 1000000
+stepvalue: 100000
+stepvalue: 200000
+stepvalue: 300000
 # stepvalue: 300000
 
 
 # Display every 100 iterations
-display: 400
+display: 100
 
 # The maximum number of iterations
 # max_iter: 350000
-max_iter: 1400000
+max_iter: 350000
 
 
 # snapshot intermediate results
 snapshot: 8000
-snapshot_prefix: "models/s13_ao74_quad3/ae74.train"
+snapshot_prefix: "models/s13_ao74_quad3_00/ae74.train"
 
 # solver mode: CPU or GPU
 solver_mode: CPU

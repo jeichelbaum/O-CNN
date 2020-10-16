@@ -31,6 +31,8 @@ class polynomial2 {
             Eigen::Vector3f quadric_center, Eigen::VectorXf quadric_coefs);
 
     static float calc_taubin_dist(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs);
+
+    static float calc_taubin_dist_fast(Eigen::MatrixXf points_local, Eigen::VectorXf coefs);
 };
 
 

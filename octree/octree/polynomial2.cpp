@@ -63,6 +63,72 @@ float polynomial2::calc_taubin_dist(Eigen::Vector3f point, Eigen::Vector3f cente
     return fabs(val) / grad.norm();
 }
 
+float polynomial2::calc_taubin_dist_fast(Eigen::MatrixXf points_local, Eigen::VectorXf coefs) 
+{
+    int npt = points_local.rows();
+    Eigen::ArrayXf ones = Eigen::ArrayXf::Ones(npt);
+
+    // ---- polynomial
+    Eigen::MatrixXf b = Eigen::MatrixXf::Zero(npt, 10);
+
+    //  1 + x + y + z
+    b.col(0) = coefs[0] * ones;
+    b.col(1) = coefs[1] * points_local.col(0).array();
+    b.col(2) = coefs[2] * points_local.col(1).array();
+    b.col(3) = coefs[3] * points_local.col(2).array();
+
+    // xx + xy + xz
+    b.col(4) = coefs[4] * points_local.col(0).array() * points_local.col(0).array();
+    b.col(5) = coefs[5] * points_local.col(0).array() * points_local.col(1).array();
+    b.col(6) = coefs[6] * points_local.col(0).array() * points_local.col(2).array();
+
+    // yy + yz + zz
+    b.col(7) = coefs[7] * points_local.col(1).array() * points_local.col(1).array();
+    b.col(8) = coefs[8] * points_local.col(1).array() * points_local.col(2).array();
+    b.col(9) = coefs[9] * points_local.col(2).array() * points_local.col(2).array();
+
+    // sum polynomial components
+    auto f = b.rowwise().sum().rowwise().norm();
+
+    // ---- gradient
+    Eigen::MatrixXf grad = Eigen::MatrixXf::Zero(npt, 3);
+
+    // dx = 1 + 2x + y + z
+    grad.col(0) = coefs[1] * ones + 2 * coefs[4] * points_local.col(0).array()
+                    + coefs[5] * points_local.col(1).array() + coefs[6] * points_local.col(2).array();
+
+    // dy = 1 + x + 2y + z
+    grad.col(1) = coefs[2] * ones + coefs[5] * points_local.col(0).array()
+                    + 2 * coefs[7] * points_local.col(1).array() + coefs[8] * points_local.col(2).array();
+
+    // dz = 1 + x + y + 2z
+    grad.col(2) = coefs[3] * ones + coefs[6] * points_local.col(0).array()
+                    + coefs[8] * points_local.col(1).array() + 2 * coefs[9] * points_local.col(2).array();
+
+    // rowwise norm
+    auto g = (grad.rowwise().norm());
+
+    // evaluate taubin distances
+    auto t = f.col(0).array() / g.col(0).array();
+
+    /*if (npt == 3) {
+        std::cout << "-> poly" << std::endl;
+        std::cout << b << std::endl;
+        std::cout << f.transpose() << std::endl;
+        std::cout << "-> grad" << std::endl;
+        std::cout << grad << std::endl;
+        std::cout << g << std::endl;
+        std::cout << "-> taubin" << std::endl;
+        std::cout << t << std::endl;
+    }*/
+
+    // select max taubin distance
+    return t.maxCoeff();
+    // avg taubin distance
+    return t.sum() / npt;
+
+}
+
 Polynomial2Approx::Polynomial2Approx (Points& point_cloud, const float* bbmin, const float mul) {
     // store ref to source points and normals
     this->pts = point_cloud;
@@ -184,7 +250,6 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         Eigen::MatrixXf b = Eigen::MatrixXf::Zero(npt*n_constraints, 10);
         Eigen::VectorXf f = Eigen::VectorXf::Zero(npt*n_constraints);
         Eigen::VectorXf wN = Eigen::VectorXf::Ones(npt*n_constraints);
-        time_approx += duration_cast<microseconds>(high_resolution_clock::now() - start_approx).count();
 
         for (std::size_t i = 0; i < npt; ++i)
         {
@@ -248,6 +313,7 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         //surf_coefs = B.inverse() * bf;        // never invert matrices
         surf_coefs = B.colPivHouseholderQr().solve(bf);
         if (!check_coefs()) { return false; }     
+        time_approx += duration_cast<microseconds>(high_resolution_clock::now() - start_approx).count();
 
 
         // skip error calculation for last layer
@@ -256,12 +322,22 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         }
 
         auto start_taubin = system_clock::now();
+
+        /*Eigen::MatrixXf testp = Eigen::MatrixXf::Ones(3, 3);
+        testp(0,0) = 0.0; testp(0,1) = -1.0; testp(0,2) = 0.0; 
+        testp(1,0) = -1.0; testp(1,1) = 0.0; testp(1,2) = 0.5; 
+        testp(2,0) = 2.0; testp(2,1) = 0.0; testp(2,2) = 0.0; 
+        Eigen::VectorXf testc = Eigen::VectorXf::Ones(10);
+        testc(4) = testc(5) = testc(6) = testc(7) = testc(8) = -1.0;*/
+
         // calc point2surface via taubin distance
         // return false if surface to point cloud distance is bigger than error threshold
-        error_avg_points_surface_dist = 0;
-        for (std::size_t i = 0; i < npt; ++i) {
+        error_avg_points_surface_dist = polynomial2::calc_taubin_dist_fast(points, surf_coefs);
+
+        /*for (std::size_t i = 0; i < npt; ++i) {
             error_avg_points_surface_dist += polynomial2::calc_taubin_dist(points.row(i), surf_center, cell_size, surf_coefs) / npt;
-        }
+        }*/
+
         time_taubin += duration_cast<microseconds>(high_resolution_clock::now() - start_taubin).count();
         if (error_avg_points_surface_dist > error_p2q) { return false; }
 
