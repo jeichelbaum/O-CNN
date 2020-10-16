@@ -152,6 +152,8 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
 
         // ----------- COPY
 
+
+        auto start_copy = system_clock::now();
         // copy points and normals into Eigen Matrix shape(Nx3)
         Eigen::MatrixXf points = Eigen::MatrixXf::Zero(npt, 3);
         Eigen::MatrixXf normals = Eigen::MatrixXf::Zero(npt, 3);
@@ -165,7 +167,10 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
                 normals(p, j) = pts.normal()[pointIdxRadiusSearch[p]*3+j];
             }
         }
+        time_copy += duration_cast<microseconds>(high_resolution_clock::now() - start_copy).count();
 
+
+        auto start_approx = system_clock::now();
 
         //          center point cloud
         surf_center = cell_base + 0.5 * Vector3f(cell_size, cell_size, cell_size);
@@ -179,6 +184,7 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         Eigen::MatrixXf b = Eigen::MatrixXf::Zero(npt*n_constraints, 10);
         Eigen::VectorXf f = Eigen::VectorXf::Zero(npt*n_constraints);
         Eigen::VectorXf wN = Eigen::VectorXf::Ones(npt*n_constraints);
+        time_approx += duration_cast<microseconds>(high_resolution_clock::now() - start_approx).count();
 
         for (std::size_t i = 0; i < npt; ++i)
         {
@@ -194,7 +200,6 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
             f(iN+1) = normals(i, 0);
             f(iN+2) = normals(i, 1);
             f(iN+3) = normals(i, 2);
-            
 
             // design matrix    -   quadric
             Eigen::Vector3f p = points.row(i);
@@ -244,20 +249,23 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         surf_coefs = B.colPivHouseholderQr().solve(bf);
         if (!check_coefs()) { return false; }     
 
+
         // skip error calculation for last layer
         if (cell_size == 1.0) {
             return true;
         }
 
+        auto start_taubin = system_clock::now();
         // calc point2surface via taubin distance
         // return false if surface to point cloud distance is bigger than error threshold
         error_avg_points_surface_dist = 0;
         for (std::size_t i = 0; i < npt; ++i) {
             error_avg_points_surface_dist += polynomial2::calc_taubin_dist(points.row(i), surf_center, cell_size, surf_coefs) / npt;
         }
+        time_taubin += duration_cast<microseconds>(high_resolution_clock::now() - start_taubin).count();
         if (error_avg_points_surface_dist > error_p2q) { return false; }
 
-        
+        auto start_mc = system_clock::now();
         // calc surface2points
         vector<float> surf_edge_samples;
         vector<int> faces;
@@ -275,6 +283,8 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
             } 
         }
         error_max_surface_points_dist = sqrtf(surface_point_dist);
+        time_mc += duration_cast<microseconds>(high_resolution_clock::now() - start_mc).count();
+
 
         // return well approximated if all errors are below threshold
         return (error_max_surface_points_dist <= error_q2p);

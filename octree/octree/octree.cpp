@@ -436,6 +436,11 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
 
     }
   }
+
+  printf("time copy %f\n", helper.time_copy / 1000000.0f);
+  printf("time approx %f\n", helper.time_approx / 1000000.0f);
+  printf("time taubin %f\n", helper.time_taubin / 1000000.0f);
+  printf("time mc %f\n", helper.time_mc / 1000000.0f);
 }
 
 
@@ -828,6 +833,7 @@ void Octree::covered_depth_nodes() {
     dnum_[depth_ - 1][i] = 8;
     didx_[depth_ - 1][i] = t * 8;
   }
+  
 
   // layer-(depth-2) to layer-0
   for (int d = depth_ - 2; d >= 0; --d) {

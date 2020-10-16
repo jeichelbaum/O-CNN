@@ -4,6 +4,7 @@
 #include <iostream>
 #include <limits>
 #include <vector>
+#include <chrono>
 
 #include <eigen3/Eigen/Dense>
 
@@ -16,6 +17,7 @@
 
 
 using namespace std;
+using namespace std::chrono;
 using Eigen::Vector2f;
 using Eigen::Vector3f;
 using Eigen::VectorXf;
@@ -51,6 +53,11 @@ class Polynomial2Approx {
 
         float error_avg_points_surface_dist;
         float error_max_surface_points_dist;
+
+        float time_copy = 0;
+        float time_approx = 0;
+        float time_taubin = 0;
+        float time_mc = 0;
 
     private:
         int SURFACE_SAMPLING_RESOLUTION = 5;
