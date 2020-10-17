@@ -436,11 +436,6 @@ void Octree::calc_signal_implicit(Points& point_cloud, const vector<float>& pts_
 
     }
   }
-
-  printf("time copy %f\n", helper.time_copy / 1000000.0f);
-  printf("time approx %f\n", helper.time_approx / 1000000.0f);
-  printf("time taubin %f\n", helper.time_taubin / 1000000.0f);
-  printf("time mc %f\n", helper.time_mc / 1000000.0f);
 }
 
 
