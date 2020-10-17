@@ -76,60 +76,75 @@ void polynomial2::visualize_quadric(vector<float>* verts, vector<int>* faces, Ei
     }
 }
 
-void polynomial2::sample_quadric(vector<float>* verts, Eigen::Vector3f base, float scale, vector<vector<vector<int>>> idx, Eigen::MatrixXf points_local, Eigen::VectorXf quadric_coefs)
+void polynomial2::sample_quadric(vector<float>* verts, Eigen::Vector3f base, float scale, Eigen::MatrixXf points_local, vector<vector<vector<int>>> idx, Eigen::VectorXf quadric_coefs)
 {
-    /*int res = idx.size();
+    // TODO FIX SOME SORT OF SCALING ISSUE - debuggable by same quad3 octree construction but different octree2mesh visualization
+    int res = idx.size();
+    float step = 1.0 / float(res-1);
     auto grid = eval_quadric_fast(points_local, quadric_coefs);
 
-    vector<float> verts_ = *verts;
-    verts->resize(res*res*res*3);
-    int num = 0;
+    int num = verts->size();
+    int num_start = num;
+    verts->resize(num + res*res*res*3*12);
 
     float dist;
     float lerp;
 
+    float fval_min, fval_max;
+
     // eval 3 edges per vertex
     for (int x = 0; x < res; x++) {
-        for (int y = 0; x < res; x++) {
-            for (int z = 0; x < res; x++) {
+        for (int y = 0; y < res; y++) {
+            for (int z = 0; z < res; z++) {
                 if (x+1 < res && signbit(grid(idx[x][y][z])) != signbit(grid(idx[x+1][y][z])) ) {
-                    dist = (grid(idx[x+1][y][z], 0) - grid(idx[x][y][z], 0));
-                    lerp = -(grid(idx[x][y][z], 0) / dist);
-                    verts_[num] = points_local(idx[x][y][z], 0) + lerp * dist;
-                    verts_[num+1] = points_local(idx[x][y][z], 1);
-                    verts_[num+2] = points_local(idx[x][y][z], 2);
+                    fval_min = min(grid(idx[x][y][z], 0), grid(idx[x+1][y][z], 0));
+                    fval_max = max(grid(idx[x][y][z], 0), grid(idx[x+1][y][z], 0));
+                    dist = fval_max - fval_min;
+                    lerp = -fval_min / dist;
+                    
+                    verts->at(num) = step * x + lerp * step;
+                    verts->at(num+1) = step * y;
+                    verts->at(num+2) = step * z;
                     num+=3;
                 }    
 
                 if (y+1 < res && signbit(grid(idx[x][y][z])) != signbit(grid(idx[x][y+1][z])) ) {
-                    dist = (grid(idx[x][y+1][z], 0) - grid(idx[x][y][z], 0));
-                    lerp = -(grid(idx[x][y][z], 0) / dist);
-                    verts_[num] = points_local(idx[x][y][z], 0);
-                    verts_[num+1] = points_local(idx[x][y][z], 1) + lerp * dist;
-                    verts_[num+2] = points_local(idx[x][y][z], 2);
+                    fval_min = min(grid(idx[x][y][z], 0), grid(idx[x][y+1][z], 0));
+                    fval_max = max(grid(idx[x][y][z], 0), grid(idx[x][y+1][z], 0));
+                    dist = fval_max - fval_min;
+                    lerp = -fval_min / dist;
+
+                    verts->at(num) = step * x;
+                    verts->at(num+1) = step * y + lerp * step;
+                    verts->at(num+2) = step * z;
                     num+=3;
                 }    
 
                 if (z+1 < res && signbit(grid(idx[x][y][z])) != signbit(grid(idx[x][y][z+1])) ) {
-                    dist = (grid(idx[x][y][z+1], 0) - grid(idx[x][y][z], 0));
-                    lerp = -(grid(idx[x][y][z], 0) / dist);
-                    verts_[num] = points_local(idx[x][y][z], 0);
-                    verts_[num+1] = points_local(idx[x][y][z], 1);
-                    verts_[num+2] = points_local(idx[x][y][z], 2) + lerp * dist;
+                    fval_min = min(grid(idx[x][y][z], 0), grid(idx[x][y][z+1], 0));
+                    fval_max = max(grid(idx[x][y][z], 0), grid(idx[x][y][z+1], 0));
+                    dist = fval_max - fval_min;
+                    lerp = -fval_min / dist;
+
+                    verts->at(num) = step * x;
+                    verts->at(num+1) = step * y;
+                    verts->at(num+2) = step * z + lerp * step;
                     num+=3;
-                }    
+                }
             }
         }
     }
 
     // resize vert array and rescale points
     verts->resize(num);
-    for (int v = 0; v < num; v+=3) {
-        verts_[v] = base(0) + scale * verts_[v];
-        verts_[v+1] = base(1) + scale * verts_[v+1];
-        verts_[v+2] = base(2) + scale * verts_[v+2];
-    }*/
+    for (int v = num_start; v < num; v+=3) {
+        verts->at(v) = base(0) + scale * verts->at(v);
+        verts->at(v+1) = base(1) + scale * verts->at(v+1);
+        verts->at(v+2) = base(2) + scale * verts->at(v+2);
+    }
 }
+
+
 
 
 float polynomial2::calc_taubin_dist(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs)
@@ -203,19 +218,16 @@ Polynomial2Approx::Polynomial2Approx (Points& point_cloud, const float* bbmin, c
     octree->addPointsFromInputCloud ();
 
     // setup marching cubes grid
-    setup_mc_grid(1.0f);
+    setup_mc_grid(SURFACE_SAMPLING_RESOLUTION);
 }
 
-void Polynomial2Approx::setup_mc_grid(float cell_size)
+void Polynomial2Approx::setup_mc_grid(int res)
 {
-    mc_cell_size = cell_size;
-
-    int res = SURFACE_SAMPLING_RESOLUTION;
-    float step = mc_cell_size / (res-1);
+    float step = 1.0 / (res-1);
     mc_points = Eigen::MatrixXf::Zero(res*res*res, 3);
     mc_indices = vector<vector<vector<int>>>(res, vector<vector<int>>(res, vector<int>(res)));
 
-    Eigen::Vector3f mc_base = Eigen::Vector3f(-0.5*mc_cell_size, -0.5*mc_cell_size, -0.5*mc_cell_size);
+    Eigen::Vector3f mc_base = Eigen::Vector3f(-0.5, -0.5, -0.5);
     Eigen::Vector3f mc_pos;
 
     for (int i = 0; i < mc_points.rows(); i++) {
@@ -228,6 +240,7 @@ void Polynomial2Approx::setup_mc_grid(float cell_size)
         mc_points.row(i) = mc_base + step * mc_pos;
     }
 }
+
 
 // init memory for approximation tracker
 void Polynomial2Approx::init_parent_approx_tracking(int depth_max_) {
@@ -407,8 +420,8 @@ bool Polynomial2Approx::approx_surface(Vector3f cell_base, float cell_size, floa
         // calc surface2points
         vector<float> surf_edge_samples;
         vector<int> faces;
-        polynomial2::visualize_quadric(&surf_edge_samples, &faces, cell_base, cell_size, SURFACE_SAMPLING_RESOLUTION, surf_center, surf_coefs);
-        //polynomial2::sample_quadric(&surf_edge_samples, cell_base, cell_size, mc_indices, mc_points, surf_coefs);
+        //polynomial2::visualize_quadric(&surf_edge_samples, &faces, cell_base, cell_size, 4, surf_center, surf_coefs);
+        polynomial2::sample_quadric(&surf_edge_samples, cell_base, cell_size, mc_points, mc_indices, surf_coefs);
 
         // calc max distance from surface sample to point cloud
         float surface_point_dist = surf_edge_samples.size() == 0 ? numeric_limits<float>::max() : 0;

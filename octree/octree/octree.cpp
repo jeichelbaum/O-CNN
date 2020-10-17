@@ -1114,6 +1114,24 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
   const float kMul = info_->bbox_max_width() / float(1 << depth);
   valid_depth_range(depth_start, depth_end);
 
+  int res = 10;
+  float step = 1.0 / (res-1);
+  Eigen::MatrixXf mc_points = Eigen::MatrixXf::Zero(res*res*res, 3);
+  vector<vector<vector<int>>> mc_indices(res, vector<vector<int>>(res, vector<int>(res)));
+
+  Eigen::Vector3f mc_base = Eigen::Vector3f(-0.5, -0.5, -0.5);
+  Eigen::Vector3f mc_pos;
+
+  for (int i = 0; i < mc_points.rows(); i++) {
+      int x = floor(i / (res*res));
+      int y = int(floor(i / res)) % res;
+      int z = i % res;
+      mc_indices[x][y][z] = i;
+
+      mc_pos = Eigen::Vector3f(float(x), float(y), float(z));
+      mc_points.row(i) = mc_base + step * mc_pos;
+  }
+
   V.clear(); F.clear();
   for (int d = depth_start; d <= depth_end; ++d) {
     const int* child_d = children_cpu(d);
@@ -1146,9 +1164,10 @@ void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
       for (int c = 0; c < 10; ++c) {
         surf_coefs(c) = coef[c];
       }
-      
+       
       // render surface
       polynomial2::visualize_quadric(&V, &F, cell_base, cube_size, 4, surf_center, surf_coefs);
+      //polynomial2::sample_quadric(&V, cell_base, cube_size, mc_points, mc_indices, surf_coefs);
     }
 
   }

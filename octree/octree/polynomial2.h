@@ -26,13 +26,14 @@ using Eigen::MatrixXf;
 
 class polynomial2 {
  public:
+
+
     static float eval_quadric(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs);
     static Eigen::MatrixXf eval_quadric_fast(Eigen::MatrixXf points_local, Eigen::VectorXf coefs);
 
     static void visualize_quadric(vector<float>* verts, vector<int>* faces, Eigen::Vector3f base, float size, int n_sub,
             Eigen::Vector3f quadric_center, Eigen::VectorXf quadric_coefs);
-
-    static void sample_quadric(vector<float>* verts, Eigen::Vector3f base, float scale, vector<vector<vector<int>>> idx, Eigen::MatrixXf points_local, Eigen::VectorXf quadric_coefs);
+    static void sample_quadric(vector<float>* verts, Eigen::Vector3f base, float scale, Eigen::MatrixXf points_local, vector<vector<vector<int>>> idx, Eigen::VectorXf quadric_coefs);
 
     static float calc_taubin_dist(Eigen::Vector3f point, Eigen::Vector3f center, float scale, Eigen::VectorXf coefs);
 
@@ -43,6 +44,7 @@ class polynomial2 {
 class Polynomial2Approx {
     public:
         Polynomial2Approx(Points& point_cloud, const float* bbmin, const float mul);
+        void setup_mc_grid(int res);
 
         void init_parent_approx_tracking(int depth_max_);
         void set_well_approximated(int cur_depth, int* xyz);
@@ -52,7 +54,7 @@ class Polynomial2Approx {
         bool check_coefs();
 
         int npt;
-        const int THRESHOLD_MIN_NUM_POINTS = 5;
+        const int THRESHOLD_MIN_NUM_POINTS = 7;
 
         Vector3f surf_center;
         VectorXf surf_coefs;
@@ -69,7 +71,6 @@ class Polynomial2Approx {
         int SURFACE_SAMPLING_RESOLUTION = 5;
         float COEFS_CLAMP = 10.0;
 
-        float mc_cell_size = 0;
         Eigen::MatrixXf mc_points;
         vector<vector<vector<int>>> mc_indices;
 
@@ -80,8 +81,6 @@ class Polynomial2Approx {
         int depth_max;
         vector<int> nnum_all;
         vector<vector<bool>> ptr_well_approx;
-
-        void setup_mc_grid(float cell_size);
 };
 
 #endif // POLYNOMIAL2_H_
