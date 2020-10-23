@@ -1,15 +1,17 @@
 import os
+import sys
 import numpy as np
 
 # executables
-caffe = "~/dev/caffe-official/build/install/bin/caffe"
+caffe = "caffe"
 octree_builder = "~/dev/O-CNN/octree/build/octree"
 octree2mesh = "~/dev/O-CNN/octree/build/octree2mesh"
 octree2points = "~/dev/O-CNN/octree/build/octree2points"
 mesh2points = "~/dev/O-CNN/octree/build/mesh2points"
-normalize_points = "~/dev/implicit_ocnn/build/normalize_points"
-points2obj = "~/dev/implicit_ocnn/build/points2obj"
+normalize_points = "~/dev/utils/build/normalize_points"
+points2obj = "~/dev/utils/build/points2obj"
 chamfer_dist = "~/dev/O-CNN/octree/build/chamfer_distance"
+
 
 # input 
 dataset = "ae74_slim2"
@@ -26,6 +28,30 @@ ae_out_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_slim2/ou
 output_dir = os.path.join(os.getcwd(), ae_out_dir)
 print("outdir", output_dir)
 output_dir = ae_out_dir
+
+fname_chamfer = "list_chamfer_category.txt"
+
+if len(sys.argv) > 7:
+    # 1_points_
+    points_dir = sys.argv[1]
+    # 2_octree_
+    octree_dir = sys.argv[2]
+    # auto encoder output directory
+    ae_out_dir = sys.argv[3]
+    output_dir = sys.argv[3]
+
+    # oct_test_shuffle
+    filelist_input = sys.argv[4]
+    # auto encoder model prototxt
+    model = sys.argv[5]
+    # auto encoder weights .caffemodel
+    weights = sys.argv[6]
+    # octree depth
+    depth = int(sys.argv[7])
+
+    # chamfer category output txt
+    fname_chamfer = sys.argv[8]
+
 
 
 COPY_INPUT_POINTS = True
@@ -66,7 +92,7 @@ with open(file_list_points_in, 'w') as flist:
     flist.write("\n".join(files_input_norm))
 
 
-
+print(files_input_norm)
 
 
 ###             AUTO ENCODER
@@ -140,7 +166,7 @@ for i in range(num_categories):
     m = np.mean(distances[idx], axis=0)
     metric.append("%d, %f, %f, %f" % (i, m[0], m[1], m[2])) 
 
-with open("list_chamfer_category.txt", 'w') as fmetric:
+with open(fname_chamfer, 'w') as fmetric:
     fmetric.write("\n".join(metric))
 
 
