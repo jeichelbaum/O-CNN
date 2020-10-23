@@ -12,7 +12,7 @@ points2obj = "~/dev/implicit_ocnn/build/points2obj"
 chamfer_dist = "~/dev/O-CNN/octree/build/chamfer_distance"
 
 # input 
-dataset = "ae74_slim2_car"
+dataset = "ae74_slim2"
 points_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/baseline/"
 octree_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/2_octree/%s/" % dataset
 filelist_input = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/%s/oct_test_shuffle.txt" %dataset
@@ -21,13 +21,13 @@ filelist_input = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/%s/oct_te
 depth = 7
 offset = 0.55
 model = "ae_7_4.test.prototxt"
-weights = "ae74.slim2.car.caffemodel"
-ae_out_dir = "ae_output_slim2car/"
+weights = "ae74.slim2.caffemodel"
+ae_out_dir = "ae_output_slim2/"
 output_dir = os.path.join(os.getcwd(), ae_out_dir)
 
 
-num_in = 0
-
+num_start = 1800
+num_in = 1200
 
 ###             INPUT POINT CLOUDS
 # read auto encoder input list
@@ -37,13 +37,14 @@ files_octree_in = [os.path.join(octree_dir, f) for f in files_input]
 
 files_octree_in = [os.path.join(octree_dir, f[:f.index("000.octree")+10]) for f in files_input if "000.octree" in f]
 if num_in > 0:
-    files_octree_in = files_octree_in[:num_in]
-
+    files_octree_in = files_octree_in[num_start:num_start+num_in]
 
 files_input = [f[:f.index("000.octree")-5] for f in files_input if "000.octree" in f]
 files_input = [os.path.join(points_dir, f.replace("octree", "points") + ".points") for f in files_input]
 if num_in > 0:
-    files_input = files_input[:num_in]
+    files_input = files_input[num_start:num_start+num_in]
+
+
 
 # copy and normalize input point cloud so chamfer distance is calculated properly
 files_input_norm = [os.path.join(output_dir, "%s_input.points" % str(i).zfill(5)) for i in range(len(files_input))]

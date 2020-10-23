@@ -133,7 +133,7 @@ foreach(source ${srcs})
     set(name "octree") 
   endif()
 
-  set(builds "octree", "octree2mesh")
+  set(builds "octree", "octree2mesh", "node_distribution")
   if (name IN_LIST builds)
     add_executable(${name} ${source})
     target_link_libraries(${name} octree_lib ${PCL_LIBRARIES})
