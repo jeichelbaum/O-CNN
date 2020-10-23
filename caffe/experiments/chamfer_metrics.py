@@ -22,12 +22,20 @@ depth = 7
 offset = 0.55
 model = "ae_7_4.test.prototxt"
 weights = "ae74.slim2.caffemodel"
-ae_out_dir = "ae_output_slim2/"
+ae_out_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/ae74_slim2/output/"
 output_dir = os.path.join(os.getcwd(), ae_out_dir)
+print("outdir", output_dir)
+output_dir = ae_out_dir
 
 
-num_start = 1800
-num_in = 1200
+COPY_INPUT_POINTS = True
+GENERATE_OUTPUT_OCTREE = True
+CONVERT_OCTREE2MESH = True
+CONVERT_MESH2POINTS = True
+
+
+num_start = 0
+num_in = 0
 
 ###             INPUT POINT CLOUDS
 # read auto encoder input list
@@ -44,13 +52,13 @@ files_input = [os.path.join(points_dir, f.replace("octree", "points") + ".points
 if num_in > 0:
     files_input = files_input[num_start:num_start+num_in]
 
-
-
 # copy and normalize input point cloud so chamfer distance is calculated properly
 files_input_norm = [os.path.join(output_dir, "%s_input.points" % str(i).zfill(5)) for i in range(len(files_input))]
 for i, f in enumerate(files_input):
     cmd = "%s %s %s %d %f" % (normalize_points, f, files_input_norm[i], depth, offset)
-    os.system(cmd)
+
+    if COPY_INPUT_POINTS:
+        os.system(cmd)
 
 # generate input points list file for chamfer distance 
 file_list_points_in = os.path.join(os.getcwd(), "list_points_in.txt")
@@ -65,7 +73,9 @@ with open(file_list_points_in, 'w') as flist:
 # generate auto encoder output
 num_iters = len(files_input)
 cmd = "%s test --model=%s --weights=%s --blob_prefix=%s --blob_header=false --iterations=%d" % (caffe, model, weights, ae_out_dir, num_iters)
-os.system(cmd)
+print(cmd)
+if GENERATE_OUTPUT_OCTREE:
+    os.system(cmd)
 
 
 
@@ -89,12 +99,14 @@ if True:
     # convert octree2mesh
     cmd = "%s --filenames %s --output_path %s --pu 0 --depth_start 0" % (octree2mesh, file_list_octree, ae_out_dir)
     print(cmd)
-    os.system(cmd)
+    if CONVERT_OCTREE2MESH:
+        os.system(cmd)
 
     # convert mesh2points
     cmd = "%s --filenames %s --output_path %s --area_unit 1.0" % (mesh2points, os.path.join(os.getcwd(), "list_mesh.txt"), ae_out_dir)
     print(cmd)
-    os.system(cmd)
+    if CONVERT_MESH2POINTS:
+        os.system(cmd)
 
 # too few samples to calculate chamfer distance properly
 # convert octrees2points directly
