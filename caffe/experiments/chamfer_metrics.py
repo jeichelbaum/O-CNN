@@ -2,31 +2,31 @@ import os
 import numpy as np
 
 # executables
-caffe = "~/dev/caffe-official/build/install/bin/caffe"
+caffe = "~/dev/3rdparty/caffe-official/build/install/bin/caffe"
 octree_builder = "~/dev/O-CNN/octree/build/octree"
 octree2mesh = "~/dev/O-CNN/octree/build/octree2mesh"
 octree2points = "~/dev/O-CNN/octree/build/octree2points"
 mesh2points = "~/dev/O-CNN/octree/build/mesh2points"
-normalize_points = "~/dev/implicit_ocnn/build/normalize_points"
-points2obj = "~/dev/implicit_ocnn/build/points2obj"
+normalize_points = "~/dev/utils/build/normalize_points"
+points2obj = "~/dev/utils/build/points2obj"
 chamfer_dist = "~/dev/O-CNN/octree/build/chamfer_distance"
 
 # input 
 dataset = "ae74_quad3_airplane"
-points_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/baseline/"
-octree_dir = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/2_octree/%s/" % dataset
-filelist_input = "/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/3_lmdb/%s/oct_test_shuffle.txt" %dataset
+points_dir = "/home/jeri/dev/data/ShapeNetCore.v1/1_points_baseline/"
+octree_dir = "/home/jeri/dev/data/ShapeNetCore.v1/2_octree/%s/" % dataset
+filelist_input = "/home/jeri/dev/data/ShapeNetCore.v1/3_lmdb_baseline_quad3_7/oct_test_shuffle.txt" 
 
 # auto encoder
 depth = 7
 offset = 0.55
 model = "ae_7_4.test.prototxt"
-weights = "ae74.quad3.airplane.caffemodel"
-ae_out_dir = "ae_output_quad3_airplane/"
+weights = "ae74.quad3.caffemodel"
+ae_out_dir = "ae_output/"
 output_dir = os.path.join(os.getcwd(), ae_out_dir)
 
 
-num_in = 0 
+num_in = 0
 
 
 ###             INPUT POINT CLOUDS

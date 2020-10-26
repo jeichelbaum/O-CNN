@@ -6,7 +6,7 @@ layer {
     phase: TRAIN
   }
   data_param {
-    source: "dataset/train_aug"
+    source: "/home/jeri/dev/data/ShapeNetCore.v1/1_points_baseline/oct_train_aug_lmdb"
     batch_size: 32
     backend: LMDB
   }
@@ -23,7 +23,7 @@ layer {
     phase: TEST
   }
   data_param {
-    source: "dataset/test"
+    source: "/home/jeri/dev/data/ShapeNetCore.v1/1_points_baseline/oct_test_lmdb"
     batch_size: 32
     backend: LMDB
   }

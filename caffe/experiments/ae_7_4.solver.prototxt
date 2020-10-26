@@ -34,10 +34,10 @@ max_iter: 350000
 
 
 # snapshot intermediate results
-snapshot: 8000
-snapshot_prefix: "models/s13_ao74_quad3_00/ae74.train"
+snapshot: 2000
+snapshot_prefix: "models/s13_baseline_quad3_7/ae74.train"
 
 # solver mode: CPU or GPU
-solver_mode: CPU
+solver_mode: GPU
 
 # random_seed: 3
