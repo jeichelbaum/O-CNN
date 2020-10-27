@@ -1,20 +1,25 @@
 import os
+import sys
 import subprocess
 import numpy
 
 ######
+
 process_img = False
 convert_ply = False
 generate_octree = True
 
-depth = 7
+arg_dir_points = sys.argv[1]
+arg_dir_lmdb = sys.argv[2]
+depth = int(sys.argv[3])
+
 
 print('Please properly configure the following 5 variables')
-root_pc = '/home/jeri/dev/data/ShapeNetCore.v1/1_points_baseline'
+root_pc = arg_dir_points
 root_img = ''
-root_lmdb = '/home/jeri/dev/data/ShapeNetCore.v1/1_points_baseline/'
+root_lmdb = arg_dir_lmdb
 root_octree = '/home/jeri/dev/O-CNN/octree/build'
-root_caffe = '/home/jeri/dev/3rdparty/caffe-official/build/install/bin'
+root_caffe = '/home/jeri/dev/caffe-official/build/install/bin'
 
 ######
 ply2points = os.path.join(root_octree, 'ply2points')
