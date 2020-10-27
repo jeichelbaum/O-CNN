@@ -29,7 +29,8 @@ output_dir = os.path.join(os.getcwd(), ae_out_dir)
 print("outdir", output_dir)
 output_dir = ae_out_dir
 
-fname_chamfer = "list_chamfer_category.txt"
+fname_chamfer_list = "chamfer_list.txt"
+fname_chamfer = "chamfer_category.txt"
 
 if len(sys.argv) > 7:
     # 1_points_
@@ -50,8 +51,9 @@ if len(sys.argv) > 7:
     depth = int(sys.argv[7])
 
     # chamfer category output txt
-    fname_chamfer = sys.argv[8]
-
+    fname_chamfer_list = sys.argv[8]
+    # chamfer category output txt
+    fname_chamfer_category = sys.argv[9]
 
 
 COPY_INPUT_POINTS = True
@@ -147,8 +149,8 @@ else:
 ###             CHAMFER DISTANCE 
 
 # calc chamfer distance
-os.system("rm list_chamfer.txt")
-cmd = "%s --filename_out %s --path_a %s --path_b %s" % (chamfer_dist, "list_chamfer.txt", file_list_points_in, file_list_points_out)
+#os.system("rm %s" % fname_chamfer_list)
+cmd = "%s --filename_out %s --path_a %s --path_b %s" % (chamfer_dist, fname_chamfer_list, file_list_points_in, file_list_points_out)
 print(cmd)
 os.system(cmd)
 
@@ -158,7 +160,7 @@ metric = ["category, avg_ab, avg_ba, avg_ab + avg_ba"]
 
 num_categories = len(set(categories))
 categories = np.array(categories)
-distances = open("list_chamfer.txt", 'r').read().split("\n")[:-1]
+distances = open(fname_chamfer_list, 'r').read().split("\n")[:-1]
 distances = np.array([[float(val.replace(",", "")) for val in l.split(" ")[-3:]] for l in distances])
 
 for i in range(num_categories):
@@ -166,7 +168,7 @@ for i in range(num_categories):
     m = np.mean(distances[idx], axis=0)
     metric.append("%d, %f, %f, %f" % (i, m[0], m[1], m[2])) 
 
-with open(fname_chamfer, 'w') as fmetric:
+with open(fname_chamfer_category, 'w') as fmetric:
     fmetric.write("\n".join(metric))
 
 

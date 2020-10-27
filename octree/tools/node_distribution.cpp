@@ -19,6 +19,7 @@ using cflags::Require;
 const float kPI = 3.14159265f;
 
 DEFINE_string(filenames, kRequired, "", "The octree list");
+DEFINE_string(filename_out, kRequired, "", "fname output");
 
 
 int main(int argc, char* argv[]) {
@@ -28,7 +29,11 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-
+  ofstream outfile(FLAGS_filename_out, ios::app);
+  if (!outfile) {
+    cout << "Error: Can not open the output file:" << FLAGS_filename_out << endl;
+    return 0;
+  }
 
   // category path
   string list_path = FLAGS_filenames;
@@ -44,7 +49,7 @@ int main(int argc, char* argv[]) {
   Eigen::VectorXf thread_counter = VectorXf::Zero(max_num_threads);
 
   // depth X num threads matrix
-  Eigen::VectorXf num_files = Eigen::VectorXf::Ones(max_num_threads);
+  Eigen::VectorXf num_files = Eigen::VectorXf::Zero(max_num_threads);
   Eigen::MatrixXf distrib = Eigen::MatrixXf::Zero(9, max_num_threads);
 
   #pragma omp parallel for
@@ -60,7 +65,7 @@ int main(int argc, char* argv[]) {
     for (int d = 0; d <= depth; d++) {
       count(d) = octree.info().node_num(d);
     }
-    count /= float(count.sum()); // add relative 
+    //count /= float(count.sum()); // store relative 
 
     // write result into shared count
     int t = omp_get_thread_num();
@@ -68,28 +73,27 @@ int main(int argc, char* argv[]) {
     num_files(t)++;
     thread_counter(t) = 1;
 
+    // progress bar
     if (int(num_files(t)) % 100 == 0) printf("thread %d -> %d\n", t, int(num_files(t)));
   }
+  Eigen::VectorXf result = distrib.rowwise().sum() / num_files.sum();
 
-  int num_threads_used = thread_counter.sum();
-
-  // divide distrib by number of files processed
-  for (int r = 0; r < distrib.rows(); r++) {
-    distrib.block(r, 0, 1, max_num_threads) = distrib.row(r).array() / num_files.transpose().array();
-  }
-
-  // divide by number of threads - doesnt sum to one because init num_fules with ones
-  Eigen::VectorXf result = distrib.rowwise().sum() / num_threads_used;
-  printf("sanity check: percentages sum to %f\n", result.sum());
-  result /= result.sum(); 
-  printf("post normalize: percentages sum to %f\n\n", result.sum());
-
-
-  printf("relative number of nodes distribution accress depth levels:\n");
   for (int d = 0; d < distrib.rows(); d++) {
-    printf("depth %d: %f\n", d, result(d));
-  }
+    outfile << "d=" << d << "\t";
+  } outfile << std::endl;
 
+  for (int d = 0; d < distrib.rows(); d++) {
+    outfile << result(d) << "\t";
+  } outfile << std::endl;
+
+  result /= result.sum();
+
+  for (int d = 0; d < distrib.rows(); d++) {
+    outfile << result(d)*100 << "%\t";
+  } outfile << std::endl;
+
+
+  outfile.close();
 
   return 0;
 }
