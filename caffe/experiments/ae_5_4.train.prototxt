@@ -98,7 +98,7 @@ layer {
   bottom: "OctLData2"
   top: "OctConv2"
   convolution_param {
-    num_output: 8
+    num_output: 16
     bias_term: false
     kernel_size: 3
     stride: 1
