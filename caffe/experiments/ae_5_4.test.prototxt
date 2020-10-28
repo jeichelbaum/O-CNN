@@ -938,16 +938,10 @@ layer {
   top: "Normalize1"
 }
 layer {
-  name: "TanH2"
-  type: "TanH"
-  bottom: "Slice2"
-  top: "TanH2"
-}
-layer {
   name: "Concat1"
   type: "Concat"
   bottom: "Normalize1"
-  bottom: "TanH2"
+  bottom: "Slice2"
   top: "Concat1"
   concat_param {
     axis: 1
@@ -1168,16 +1162,10 @@ layer {
   top: "Normalize2"
 }
 layer {
-  name: "TanH3"
-  type: "TanH"
-  bottom: "Slice4"
-  top: "TanH3"
-}
-layer {
   name: "Concat2"
   type: "Concat"
   bottom: "Normalize2"
-  bottom: "TanH3"
+  bottom: "Slice4"
   top: "Concat2"
   concat_param {
     axis: 1

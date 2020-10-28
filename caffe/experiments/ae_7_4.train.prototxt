@@ -1144,15 +1144,9 @@ layer {
   }
 }
 layer {
-  name: "TanH2"
-  type: "TanH"
-  bottom: "Slice2"
-  top: "TanH2"
-}
-layer {
   name: "Loss5"
   type: "EuclideanLoss"
-  bottom: "TanH2"
+  bottom: "Slice2"
   bottom: "Slice4"
   top: "Loss5"
   loss_weight: 1
@@ -1385,15 +1379,9 @@ layer {
   }
 }
 layer {
-  name: "TanH3"
-  type: "TanH"
-  bottom: "Slice6"
-  top: "TanH3"
-}
-layer {
   name: "Loss8"
   type: "EuclideanLoss"
-  bottom: "TanH3"
+  bottom: "Slice6"
   bottom: "Slice8"
   top: "Loss8"
   loss_weight: 1
@@ -1626,15 +1614,9 @@ layer {
   }
 }
 layer {
-  name: "TanH4"
-  type: "TanH"
-  bottom: "Slice10"
-  top: "TanH4"
-}
-layer {
   name: "Loss11"
   type: "EuclideanLoss"
-  bottom: "TanH4"
+  bottom: "Slice10"
   bottom: "Slice12"
   top: "Loss11"
   loss_weight: 1
@@ -1867,15 +1849,9 @@ layer {
   }
 }
 layer {
-  name: "TanH5"
-  type: "TanH"
-  bottom: "Slice14"
-  top: "TanH5"
-}
-layer {
   name: "Loss14"
   type: "EuclideanLoss"
-  bottom: "TanH5"
+  bottom: "Slice14"
   bottom: "Slice16"
   top: "Loss14"
   loss_weight: 1
