@@ -1,20 +1,23 @@
 import os
+import sys
 import subprocess
 import numpy
 
 ######
-dataset_name = 'baseline'
 
 process_img = False
 convert_ply = False
-generate_octree = False
+generate_octree = True
 
-depth = 7
+arg_dir_points = sys.argv[1]
+arg_dir_lmdb = sys.argv[2]
+depth = int(sys.argv[3])
+
 
 print('Please properly configure the following 5 variables')
-root_pc = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/%s' % dataset_name
-root_img = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_renders/%s' % dataset_name
-root_lmdb = '/media/jeri/DATA/dev/datasets/ShapeNetCore.v2/1_points/%s' % dataset_name
+root_pc = arg_dir_points
+root_img = ''
+root_lmdb = arg_dir_lmdb
 root_octree = '/home/jeri/dev/O-CNN/octree/build'
 root_caffe = '/home/jeri/dev/caffe-official/build/install/bin'
 
@@ -100,7 +103,7 @@ for i in range(0, len(category)):
     subprocess.check_call(
       [octree, '--filenames', filename_list, '--output_path', path_octree, 
       '--adp_depth', '4', '--depth', str(depth),
-      '--adaptive', '1', '--th_distance', '1.2', '--th_normal', '5.0', 
+      '--adaptive', '1', '--th_distance', '0.7', '--th_normal', '0.7', 
       '--node_dis', '1', '--split_label', '1']
     )
 

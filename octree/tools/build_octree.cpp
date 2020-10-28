@@ -128,47 +128,49 @@ int main(int argc, char* argv[]) {
 
   #pragma omp parallel for
   for (int i = 0; i < all_files.size(); i++) {
-    printf("th_%d processing file #%d\n", omp_get_thread_num(), i);
-    
-    OctreeBuilder builder;
-    bool succ = builder.set_point_cloud(all_files[i]);
+    try {
+      printf("th_%d processing file #%d\n", omp_get_thread_num(), i);
+      
+      OctreeBuilder builder;
+      bool succ = builder.set_point_cloud(all_files[i]);
 
-    string filename = extract_filename(all_files[i]);
-    if (!succ) {
-      if (FLAGS_verbose) cout << "Warning: " + filename + " is invalid!\n";
-      continue;
-    }
-    builder.set_octree_info();
-
-    // data augmentation
-    float angle = 2.0f * kPI / float(FLAGS_rot_num);
-    float axis[] = { 0.0f, 0.0f, 0.0f };
-    if (FLAGS_axis == "x") axis[0] = 1.0f;
-    else if (FLAGS_axis == "y") axis[1] = 1.0f;
-    else axis[2] = 1.0f;
-
-    if (FLAGS_verbose) cout << "Processing: " + filename + "\n";
-    for (int v = 0; v < FLAGS_rot_num; ++v) {
-
-      // auto encoder only requires rotation 0, 1, 11
-      if (v == 0 || v == 1 || v == 11) {
-        // output filename
-        char file_suffix[64];
-        sprintf(file_suffix, "_%d_%d_%03d.octree", FLAGS_depth, FLAGS_full_depth, v);
-
-        // build
-        builder.build_octree();
-
-        // save octree
-        builder.save_octree(output_path + filename + file_suffix);
+      string filename = extract_filename(all_files[i]);
+      if (!succ) {
+        if (FLAGS_verbose) cout << "Warning: " + filename + " is invalid!\n";
+        continue;
       }
+      builder.set_octree_info();
 
-      // rotate point for the next iteration
-      builder.point_cloud_.rotate(angle, axis);
+      // data augmentation
+      float angle = 2.0f * kPI / float(FLAGS_rot_num);
+      float axis[] = { 0.0f, 0.0f, 0.0f };
+      if (FLAGS_axis == "x") axis[0] = 1.0f;
+      else if (FLAGS_axis == "y") axis[1] = 1.0f;
+      else axis[2] = 1.0f;
 
-      // message
-      //cout << "Processing: " << filename.substr(filename.rfind('\\') + 1) << endl;
-    }
+      if (FLAGS_verbose) cout << "Processing: " + filename + "\n";
+      for (int v = 0; v < FLAGS_rot_num; ++v) {
+
+        // auto encoder only requires rotation 0, 1, 11
+        if (v == 0 || v == 1 || v == 11) {
+          // output filename
+          char file_suffix[64];
+          sprintf(file_suffix, "_%d_%d_%03d.octree", FLAGS_depth, FLAGS_full_depth, v);
+
+          // build
+          builder.build_octree();
+
+          // save octree
+          builder.save_octree(output_path + filename + file_suffix);
+        }
+
+        // rotate point for the next iteration
+        builder.point_cloud_.rotate(angle, axis);
+
+        // message
+        //cout << "Processing: " << filename.substr(filename.rfind('\\') + 1) << endl;
+      }
+    } catch (...) {}
   }
 
   if (FLAGS_verbose) cout << "Done: " << FLAGS_filenames << endl;
