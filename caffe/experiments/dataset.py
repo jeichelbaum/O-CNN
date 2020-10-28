@@ -19,7 +19,7 @@ root_pc = arg_dir_points
 root_img = ''
 root_lmdb = arg_dir_lmdb
 root_octree = '/home/jeri/dev/O-CNN/octree/build'
-root_caffe = '/home/jeri/dev/caffe-official/build/install/bin'
+root_caffe = '/home/jeri/dev/3rdparty/caffe-official/build/install/bin'
 
 ######
 ply2points = os.path.join(root_octree, 'ply2points')
@@ -136,23 +136,18 @@ for i in range(0, len(category)):
   path_octree = os.path.join(root_pc, category[i], 'octree')
   filename_octree = sorted(os.listdir(path_octree))
 
-  # join filenames where render view and octree present
-  filename = []
-  if process_img:
-    filename = [val for val in filename_img if val + '.points.ply' in filename_pc]
-  else:
-    filename = [val for val in filename_octree if '%s_%d_2_000.octree' % (val[:-7], depth) in filename_octree]
+  fnames = [fname for fname in os.listdir(path_octree) if "000.octree" in fname]
+  fnames_aug = [fname for fname in os.listdir(path_octree) if "000.octree" in fname or "001.octree" in fname or "011.octree" in fname]
 
-  for item in filename[:int(len(filename) * 0.8)]:
-    file_oct_train.write('%s/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
+  for item in fnames[:int(len(fnames) * 0.8)]:
+      file_oct_train.write('%s/octree/%s %d\n' % (category[i], item, i))
 
-  for item in filename[int(len(filename) * 0.8):]:
-    file_oct_test.write('%s/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
+  for item in fnames[int(len(fnames) * 0.8):]:
+      file_oct_test.write('%s/octree/%s %d\n' % (category[i], item, i))
 
-  for item in filename[:int(len(filename) * 0.8)]:
-    file_oct_train_aug.write('%s/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
-    file_oct_train_aug.write('%s/%s_%d_2_001.octree %d\n' % (category[i], item[:-7], depth, i))
-    file_oct_train_aug.write('%s/%s_%d_2_011.octree %d\n' % (category[i], item[:-7], depth, i))
+  for item in fnames_aug[:int(len(fnames_aug) * 0.8)]:
+      file_oct_train_aug.write('%s/octree/%s %d\n' % (category[i], item, i))
+
 
 file_oct_train.close()
 file_oct_test.close()
