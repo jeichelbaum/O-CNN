@@ -141,19 +141,18 @@ for i in range(0, len(category)):
   if process_img:
     filename = [val for val in filename_img if val + '.points.ply' in filename_pc]
   else:
-    filename = [val for val in filename_pc if '%s_7_2_000.octree' % val[:-7] in filename_octree]
+    filename = [val for val in filename_octree if '%s_%d_2_000.octree' % (val[:-7], depth) in filename_octree]
 
   for item in filename[:int(len(filename) * 0.8)]:
-    pass
-    file_oct_train.write('%s/octree/%s_7_2_000.octree %d\n' % (category[i], item[:-7], i))
+    file_oct_train.write('%s/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
 
   for item in filename[int(len(filename) * 0.8):]:
-    file_oct_test.write('%s/octree/%s_7_2_000.octree %d\n' % (category[i], item[:-7], i))
+    file_oct_test.write('%s/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
 
   for item in filename[:int(len(filename) * 0.8)]:
-    file_oct_train_aug.write('%s/octree/%s_7_2_000.octree %d\n' % (category[i], item[:-7], i))
-    file_oct_train_aug.write('%s/octree/%s_7_2_001.octree %d\n' % (category[i], item[:-7], i))
-    file_oct_train_aug.write('%s/octree/%s_7_2_011.octree %d\n' % (category[i], item[:-7], i))
+    file_oct_train_aug.write('%s/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
+    file_oct_train_aug.write('%s/%s_%d_2_001.octree %d\n' % (category[i], item[:-7], depth, i))
+    file_oct_train_aug.write('%s/%s_%d_2_011.octree %d\n' % (category[i], item[:-7], depth, i))
 
 file_oct_train.close()
 file_oct_test.close()
