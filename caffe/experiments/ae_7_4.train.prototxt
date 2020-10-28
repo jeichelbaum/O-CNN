@@ -12,7 +12,7 @@ layer {
   }
   octree_param {
     curr_depth: 7
-    signal_channel: 12
+    signal_channel: 4
   }
 }
 layer {
@@ -29,7 +29,7 @@ layer {
   }
   octree_param {
     curr_depth: 7
-    signal_channel: 12
+    signal_channel: 4
   }
 }
 
@@ -40,7 +40,7 @@ layer {
   octree_param {
     curr_depth: 4
     content_flag: 'feature'
-    signal_channel: 12
+    signal_channel: 4
   }
 }
 layer {
@@ -89,7 +89,15 @@ layer {
   octree_param {
     curr_depth: 5
     content_flag: 'feature'
-    signal_channel: 120922_ae_7_4
+    signal_channel: 4
+  }
+}
+layer {
+  name: "OctConv2"
+  type: "OctreeConv"
+  bottom: "OctLData2"
+  top: "OctConv2"
+  convolution_param {
     num_output: 8
     bias_term: false
     kernel_size: 3
@@ -131,7 +139,7 @@ layer {
   octree_param {
     curr_depth: 6
     content_flag: 'feature'
-    signal_channel: 12
+    signal_channel: 4
   }
 }
 layer {
@@ -1073,7 +1081,7 @@ layer {
   bottom: "Conv7"
   top: "Conv9"
   convolution_param {
-    num_output: 12
+    num_output: 4
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -1314,7 +1322,7 @@ layer {
   bottom: "Conv10"
   top: "Conv12"
   convolution_param {
-    num_output: 12
+    num_output: 4
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -1555,7 +1563,7 @@ layer {
   bottom: "Conv13"
   top: "Conv15"
   convolution_param {
-    num_output: 12
+    num_output: 4
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -1796,7 +1804,7 @@ layer {
   bottom: "Conv16"
   top: "Conv18"
   convolution_param {
-    num_output: 12
+    num_output: 4
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -1877,4 +1885,3 @@ layer {
     normalization: VALID
   }
 }
-
