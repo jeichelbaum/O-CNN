@@ -40,7 +40,7 @@ layer {
   octree_param {
     curr_depth: 4
     content_flag: 'feature'
-    signal_channel: 4
+    signal_channel: 12
   }
 }
 layer {
@@ -875,7 +875,7 @@ layer {
   bottom: "Conv7"
   top: "Conv9"
   convolution_param {
-    num_output: 4
+    num_output: 12
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -1116,7 +1116,7 @@ layer {
   bottom: "Conv10"
   top: "Conv12"
   convolution_param {
-    num_output: 4
+    num_output: 12
     bias_term: true
     kernel_size: 1
     stride: 1
