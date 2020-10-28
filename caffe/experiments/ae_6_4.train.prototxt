@@ -6,7 +6,7 @@ layer {
     phase: TRAIN
   }
   data_param {
-    source: "dataset/train_aug_lmdb"
+		source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_quad3_d6/oct_train_aug_lmdb"
     batch_size: 32
     backend: LMDB
   }
@@ -23,7 +23,7 @@ layer {
     phase: TEST
   }
   data_param {
-    source: "dataset/test_lmdb"
+		source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_quad3_d6/oct_test_lmdb"
     batch_size: 32
     backend: LMDB
   }
@@ -1261,7 +1261,7 @@ layer {
 layer {
   name: "Loss8"
   type: "EuclideanLoss"
-  bottom: "Slice3"
+  bottom: "Slice6"
   bottom: "Slice8"
   top: "Loss8"
   loss_weight: 1
@@ -1499,43 +1499,4 @@ layer {
   loss_param {
     normalization: VALID
   }
-}
-layer {
-  name: "OctDecnv6"
-  type: "OctreeDeconv"
-  bottom: "OctConv14"
-  top: "OctDecnv6"
-  convolution_param {
-    num_output: 8
-    bias_term: false
-    kernel_size: 2
-    stride: 2
-    weight_filler {
-      type: "xavier"
-    }
-  }
-  octree_param {
-    curr_depth: 6
-  }
-}
-layer {
-  name: "BN28"
-  type: "BatchNorm"
-  bottom: "OctDecnv6"
-  top: "OctDecnv6"
-}
-layer {
-  name: "Scale28"
-  type: "Scale"
-  bottom: "OctDecnv6"
-  top: "OctDecnv6"
-  scale_param {
-    bias_term: true
-  }
-}
-layer {
-  name: "ReLU27"
-  type: "ReLU"
-  bottom: "OctDecnv6"
-  top: "OctDecnv6"
 }
