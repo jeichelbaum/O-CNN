@@ -144,16 +144,15 @@ for i in range(0, len(category)):
     filename = [val for val in filename_octree if '%s_%d_2_000.octree' % (val[:-7], depth) in filename_octree]
 
   for item in filename[:int(len(filename) * 0.8)]:
-    pass
-    file_oct_train.write('%s/octree/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
+    file_oct_train.write('%s/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
 
   for item in filename[int(len(filename) * 0.8):]:
-    file_oct_test.write('%s/octree/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
+    file_oct_test.write('%s/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
 
   for item in filename[:int(len(filename) * 0.8)]:
-    file_oct_train_aug.write('%s/octree/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
-    file_oct_train_aug.write('%s/octree/%s_%d_2_001.octree %d\n' % (category[i], item[:-7], depth, i))
-    file_oct_train_aug.write('%s/octree/%s_%d_2_011.octree %d\n' % (category[i], item[:-7], depth, i))
+    file_oct_train_aug.write('%s/%s_%d_2_000.octree %d\n' % (category[i], item[:-7], depth, i))
+    file_oct_train_aug.write('%s/%s_%d_2_001.octree %d\n' % (category[i], item[:-7], depth, i))
+    file_oct_train_aug.write('%s/%s_%d_2_011.octree %d\n' % (category[i], item[:-7], depth, i))
 
 file_oct_train.close()
 file_oct_test.close()
