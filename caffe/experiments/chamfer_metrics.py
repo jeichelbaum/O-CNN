@@ -76,6 +76,13 @@ if num_in > 0:
     files_octree_in = files_octree_in[num_start:num_start+num_in]
 
 files_input = [f[:f.index("000.octree")-5] for f in files_input if "000.octree" in f]
+
+for i, f in enumerate(files_input):
+    temp_list = f.split("/")
+    temp_list.insert(1, "points")
+    print(temp_list)
+    files_input[i] = "/".join(temp_list)
+
 files_input = [os.path.join(points_dir, f.replace("octree", "points") + ".points") for f in files_input]
 if num_in > 0:
     files_input = files_input[num_start:num_start+num_in]
