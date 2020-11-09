@@ -79,9 +79,9 @@ files_input = [f[:f.index("000.octree")-5] for f in files_input if "000.octree" 
 
 for i, f in enumerate(files_input):
     temp_list = f.split("/")
-    temp_list.insert(1, "points")
-    print(temp_list)
-    files_input[i] = "/".join(temp_list)
+    if len(temp_list) == 2:
+        temp_list.insert(1, "points")
+        files_input[i] = "/".join(temp_list)
 
 files_input = [os.path.join(points_dir, f.replace("octree", "points") + ".points") for f in files_input]
 if num_in > 0:
