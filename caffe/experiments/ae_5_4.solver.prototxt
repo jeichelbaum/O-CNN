@@ -35,7 +35,7 @@ max_iter: 350000
 
 # snapshot intermediate results
 snapshot: 2000
-snapshot_prefix: "models/ae74_quad2/ae74.train"
+snapshot_prefix: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_planar_d5/model/aocnn.train"
 
 # solver mode: CPU or GPU
 solver_mode: CPU
