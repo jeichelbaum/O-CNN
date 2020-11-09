@@ -127,6 +127,8 @@ int main(int argc, char* argv[]) {
 
   #pragma omp parallel for
   for (int i = 0; i < all_files.size(); i++) {
+    printf("th_%d processing file #%d\n", omp_get_thread_num(), i);
+
     OctreeBuilder builder;
     bool succ = builder.set_point_cloud(all_files[i]);
 
@@ -137,6 +139,7 @@ int main(int argc, char* argv[]) {
     }
     builder.set_octree_info();
 
+
     // data augmentation
     float angle = 2.0f * kPI / float(FLAGS_rot_num);
     float axis[] = { 0.0f, 0.0f, 0.0f };
@@ -146,21 +149,25 @@ int main(int argc, char* argv[]) {
 
     if (FLAGS_verbose) cout << "Processing: " + filename + "\n";
     for (int v = 0; v < FLAGS_rot_num; ++v) {
-      // output filename
-      char file_suffix[64];
-      sprintf(file_suffix, "_%d_%d_%03d.octree", FLAGS_depth, FLAGS_full_depth, v);
 
-      // build
-      builder.build_octree();
+      // auto encoder only requires rotation 0, 1, 11
+      if (v == 0 || v == 1 || v == 11) {
+        // output filename
+        char file_suffix[64];
+        sprintf(file_suffix, "_%d_%d_%03d.octree", FLAGS_depth, FLAGS_full_depth, v);
 
-      // save octree
-      builder.save_octree(output_path + filename + file_suffix);
+        // build
+        builder.build_octree();
 
-      // rotate point for the next iteration
-      builder.point_cloud_.rotate(angle, axis);
+        // save octree
+        builder.save_octree(output_path + filename + file_suffix);
 
-      // message
-      //cout << "Processing: " << filename.substr(filename.rfind('\\') + 1) << endl;
+        // rotate point for the next iteration
+        builder.point_cloud_.rotate(angle, axis);
+
+        // message
+        //cout << "Processing: " << filename.substr(filename.rfind('\\') + 1) << endl;
+      }
     }
   }
 
