@@ -9,6 +9,7 @@
 #include "points.h"
 #include "filenames.h"
 #include "cmd_flags.h"
+#include "math_functions.h"
 
 using namespace std;
 
@@ -17,6 +18,7 @@ DEFINE_string(path_b, kRequired, "", "The file path of b");
 DEFINE_string(filename_out, kRequired, "", "The output filename");
 DEFINE_int(pt_num, kOptional, -1, "The point num");
 DEFINE_string(category, kOptional, "", "The output filename");
+DEFINE_int(rescale_depth, kOptional, -1, "rescale depth");
 
 
 template < class VectorType, int DIM = 3, typename num_t = float,
@@ -81,10 +83,12 @@ class KDTreeVectorOfVectorsAdaptor {
 void closet_pts(vector<size_t>& idx, vector<float>& distance,
     const Points& pts, const Points& des) {
   // build a kdtree
+
   KDTreeVectorOfVectorsAdaptor<Points> kdtree(des);
 
   // kdtree search
   size_t num = pts.info().pt_num();
+
   distance.resize(num);
   idx.resize(num);
   const float* pt = pts.ptr(PointsInfo::kPoint);
@@ -92,6 +96,32 @@ void closet_pts(vector<size_t>& idx, vector<float>& distance,
   for (int i = 0; i < num; ++i) {
     kdtree.closest(pt + 3 * i, idx.data() + i, distance.data() + i);
   }
+}
+
+void rescale_autoencoder_output(Points input, Points output, int depth) 
+{
+    float radius_ = 0;
+    float center_[3] = {0,0,0};
+    bounding_sphere(radius_, center_, input.points(), input.info().pt_num());
+
+    // centralize 
+    float trans[3] = { -center_[0], -center_[1], -center_[2] };
+
+    // bounding box
+    float bbmin[] = { -radius_, -radius_, -radius_ };
+    float bbmax[] = { radius_, radius_, radius_ };
+    float max_width = bbmax[0] - bbmin[0];
+    if (max_width == 0.0f) max_width = 1.0e-10f;
+
+    // rescale
+    float mul = 1 / (float(1 << depth) / max_width);
+    output.uniform_scale(mul);  
+
+    // translate
+    for ( int i = 0; i < 3; i++) {
+      bbmin[i] -= trans[i];
+    }
+    output.translate(bbmin);
 }
 
 
@@ -151,8 +181,17 @@ int main(int argc, char* argv[]) {
     string filename_a = all_files_a[i];
     string filename_b = all_files_b[i];
     Points point_cloud_a, point_cloud_b;
-    point_cloud_a.read_points(filename_a);
-    point_cloud_b.read_points(filename_b);
+
+    bool loaded_a = point_cloud_a.read_points(filename_a);
+    bool loaded_b = point_cloud_b.read_points(filename_b);
+    if (!loaded_a || !loaded_b) {
+      printf("\t\tpts empty -> skipping %d\n", i);
+      continue;
+    }
+
+    if (FLAGS_rescale_depth > 0) {
+      rescale_autoencoder_output(point_cloud_a, point_cloud_b, FLAGS_rescale_depth);
+    }
 
     // random downsample points
     if (FLAGS_pt_num > 0) {
@@ -168,6 +207,7 @@ int main(int argc, char* argv[]) {
     vector<float> distance;
     closet_pts(idx, distance, point_cloud_a, point_cloud_b);
 
+
     float avg_ab = 0;
     for (auto& d : distance) { avg_ab += d; }
     avg_ab /= (float)distance.size();
@@ -178,6 +218,7 @@ int main(int argc, char* argv[]) {
     float avg_ba = 0;
     for (auto& d : distance) { avg_ba += d; }
     avg_ba /= (float)distance.size();
+
 
     // output to file
     string filename = extract_filename(filename_a); // no suffix
