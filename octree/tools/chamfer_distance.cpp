@@ -190,6 +190,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (FLAGS_rescale_depth > 0) {
+      printf("chamfer rescale\n");
       rescale_autoencoder_output(point_cloud_a, point_cloud_b, FLAGS_rescale_depth);
     }
 

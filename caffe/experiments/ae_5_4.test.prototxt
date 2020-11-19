@@ -1,13 +1,13 @@
+
 layer {
   name: "data"
   type: "OctreeDataBase"
   top: "OctLData2"
-  # top: "label"
   include {
     phase: TRAIN
   }
   data_param {
-		source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_slim2_d7/oct_train_aug_lmdb"
+	source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_slim2_d5/oct_train_aug_lmdb/"
     batch_size: 1
     backend: LMDB
   }
@@ -20,18 +20,65 @@ layer {
   name: "data"
   type: "OctreeDataBase"
   top: "OctLData2"
-  # top: "label"
   include {
     phase: TEST
   }
   data_param {
-		source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_slim2_d7/oct_test_lmdb"
+	source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_slim2_d5/oct_test_lmdb/"
     batch_size: 1
     backend: LMDB
   }
   octree_param {
     curr_depth: 5
     signal_channel: 12
+  }
+}
+layer {
+  name: "OctConv2"
+  type: "OctreeConv"
+  bottom: "OctLData2"
+  top: "OctConv2"
+  convolution_param {
+    num_output: 16
+    bias_term: false
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+  }
+  octree_param {
+    curr_depth: 5
+  }
+}
+layer {
+  name: "BN2"
+  type: "BatchNorm"
+  bottom: "OctConv2"
+  top: "OctConv2"
+}
+layer {
+  name: "Scale2"
+  type: "Scale"
+  bottom: "OctConv2"
+  top: "OctConv2"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLU2"
+  type: "ReLU"
+  bottom: "OctConv2"
+  top: "OctConv2"
+}
+layer {
+  name: "OctPool3"
+  type: "OctreePooling"
+  bottom: "OctConv2"
+  top: "OctPool3"
+  octree_param {
+    curr_depth: 5
   }
 }
 layer {
@@ -82,53 +129,6 @@ layer {
   type: "ReLU"
   bottom: "OctConv1"
   top: "OctConv1"
-}
-layer {
-  name: "OctConv2"
-  type: "OctreeConv"
-  bottom: "OctLData2"
-  top: "OctConv2"
-  convolution_param {
-    num_output: 16
-    bias_term: false
-    kernel_size: 3
-    stride: 1
-    weight_filler {
-      type: "xavier"
-    }
-  }
-  octree_param {
-    curr_depth: 5
-  }
-}
-layer {
-  name: "BN2"
-  type: "BatchNorm"
-  bottom: "OctConv2"
-  top: "OctConv2"
-}
-layer {
-  name: "Scale2"
-  type: "Scale"
-  bottom: "OctConv2"
-  top: "OctConv2"
-  scale_param {
-    bias_term: true
-  }
-}
-layer {
-  name: "ReLU2"
-  type: "ReLU"
-  bottom: "OctConv2"
-  top: "OctConv2"
-}layer {
-  name: "OctPool3"
-  type: "OctreePooling"
-  bottom: "OctConv2"
-  top: "OctPool3"
-  octree_param {
-    curr_depth: 5
-  }
 }
 layer {
   name: "Eltwise3"
@@ -188,6 +188,12 @@ layer {
     curr_depth: 4
   }
 }
+
+
+
+
+
+
 layer {
   name: "OctConv8"
   type: "OctreeConv"
@@ -710,6 +716,13 @@ layer {
     }
   }
 }
+
+
+
+
+
+
+
 layer {
   name: "ArgMax2"
   type: "ArgMax"
@@ -909,7 +922,15 @@ layer {
     mask: 1
   }
 }
-
+layer {
+  name: "OctGrow5"
+  type: "OctreeGrow"
+  bottom: "OctUpt3"
+  top: "OctGrow5"
+  octree_param {
+    curr_depth: 5
+  }
+}
 layer {
   name: "OctreeMask1"
   type: "OctreeZeroize"
@@ -930,7 +951,7 @@ layer {
     slice_point: 3
     axis: 1
   }
-}
+}, 
 layer {
   name: "Normalize1"
   type: "Normalize"
@@ -938,10 +959,16 @@ layer {
   top: "Normalize1"
 }
 layer {
+  name: "TanH2"
+  type: "TanH"
+  bottom: "Slice2"
+  top: "TanH2"
+}
+layer {
   name: "Concat1"
   type: "Concat"
   bottom: "Normalize1"
-  bottom: "Slice2"
+  bottom: "TanH2"
   top: "Concat1"
   concat_param {
     axis: 1
@@ -952,18 +979,6 @@ layer {
   type: "Split"
   bottom: "Concat1"
    top: "normal_4"
-}
-
-
-
-layer {
-  name: "OctGrow5"
-  type: "OctreeGrow"
-  bottom: "OctUpt3"
-  top: "OctGrow5"
-  octree_param {
-    curr_depth: 5
-  }
 }
 layer {
   name: "OctDecnv4"
@@ -1133,7 +1148,6 @@ layer {
     mask: 1
   }
 }
-
 layer {
   name: "OctreeMask5"
   type: "OctreeZeroize"
@@ -1154,7 +1168,7 @@ layer {
     slice_point: 3
     axis: 1
   }
-}
+}, 
 layer {
   name: "Normalize2"
   type: "Normalize"
@@ -1162,10 +1176,16 @@ layer {
   top: "Normalize2"
 }
 layer {
+  name: "TanH3"
+  type: "TanH"
+  bottom: "Slice4"
+  top: "TanH3"
+}
+layer {
   name: "Concat2"
   type: "Concat"
   bottom: "Normalize2"
-  bottom: "Slice4"
+  bottom: "TanH3"
   top: "Concat2"
   concat_param {
     axis: 1
@@ -1177,14 +1197,13 @@ layer {
   bottom: "Concat2"
    top: "normal_5"
 }
-
-
 layer {
   name: "output.octree"
   type: "OctreeSetFeature"
   bottom: "OctUpt4"
-  bottom: "normal_4"
-  bottom: "normal_5"
+    bottom:"normal_4"
+  bottom:"normal_5"
+
   top: "output.octree"
   octree_param {
     curr_depth: 5
