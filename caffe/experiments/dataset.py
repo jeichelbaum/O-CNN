@@ -104,7 +104,7 @@ for i in range(0, len(category)):
       [octree, '--filenames', filename_list, '--output_path', path_octree, 
       '--adp_depth', '4', '--depth', str(depth),
       '--adaptive', '1', '--th_distance', '0.7', '--th_normal', '0.7', 
-      '--node_dis', '1', '--split_label', '1']
+      '--node_dis', '1', '--split_label', '1', "--skip_rotations", '1']
     )
 
 
