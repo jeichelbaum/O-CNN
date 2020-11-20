@@ -1,0 +1,560 @@
+name: "OctreeNet"
+layer {
+  name: "data"
+  type: "OctreeDataBase"
+  top: "OctLData4"
+  top: "label"
+  include {
+    phase: TRAIN
+  }
+  data_param {
+    source: "/home/jeri/dev/data/ModelNet40/3_exp_baseline_quad3_d7/oct_train_aug_lmdb/"
+    batch_size: 32
+    backend: LMDB
+  }
+  octree_param {
+    curr_depth: 7
+    signal_channel: 10
+  }
+}
+layer {
+  name: "data"
+  type: "OctreeDataBase"
+  top: "OctLData4"
+  top: "label"
+  include {
+    phase: TEST
+  }
+  data_param {
+    source: "/home/jeri/dev/data/ModelNet40/3_exp_baseline_quad3_d7/oct_test_lmdb/"
+    batch_size: 32
+    backend: LMDB
+  }
+  octree_param {
+    curr_depth: 7
+    signal_channel: 10
+  }
+}
+
+
+
+layer {
+  name: "OctConvX4"
+  type: "OctreeConv"
+  bottom: "OctLData4"
+  top: "OctConvX4"
+  convolution_param {
+    num_output: 4
+    bias_term: false
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+  }
+  octree_param {
+    curr_depth: 7
+  }
+}
+layer {
+  name: "BNX4"
+  type: "BatchNorm"
+  bottom: "OctConvX4"
+  top: "OctConvX4"
+}
+layer {
+  name: "ScaleX4"
+  type: "Scale"
+  bottom: "OctConvX4"
+  top: "OctConvX4"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLUX4"
+  type: "ReLU"
+  bottom: "OctConvX4"
+  top: "OctConvX4"
+}
+layer {
+  name: "OctPoolX1"
+  type: "OctreePooling"
+  bottom: "OctConvX4"
+  top: "OctPoolX1"
+  octree_param {
+    curr_depth: 7
+  }
+}
+layer {
+  name: "OctLData3"
+  type: "OctreeProperty"
+  top: "OctLData3"
+  octree_param {
+    curr_depth: 6
+    content_flag: 'feature'
+    signal_channel: 10
+  }
+}
+layer {
+  name: "OctConvX3"
+  type: "OctreeConv"
+  bottom: "OctLData3"
+  top: "OctConvX3"
+  convolution_param {
+    num_output: 4
+    bias_term: false
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+  }
+  octree_param {
+    curr_depth: 6
+  }
+}
+layer {
+  name: "BNX3"
+  type: "BatchNorm"
+  bottom: "OctConvX3"
+  top: "OctConvX3"
+}
+layer {
+  name: "ScaleX3"
+  type: "Scale"
+  bottom: "OctConvX3"
+  top: "OctConvX3"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLUX3"
+  type: "ReLU"
+  bottom: "OctConvX3"
+  top: "OctConvX3"
+}
+layer {
+  name: "EltwiseX1"
+  type: "Eltwise"
+  bottom: "OctConvX3"
+  bottom: "OctPoolX1"
+  top: "EltwiseX1"
+  eltwise_param {
+    operation: MAX
+  }
+}
+layer {
+  name: "OctConvX5"
+  type: "OctreeConv"
+  bottom: "EltwiseX1"
+  top: "OctConvX5"
+  convolution_param {
+    num_output: 8
+    bias_term: false
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+  }
+  octree_param {
+    curr_depth: 6
+  }
+}
+layer {
+  name: "BNX5"
+  type: "BatchNorm"
+  bottom: "OctConvX5"
+  top: "OctConvX5"
+}
+layer {
+  name: "ScaleX5"
+  type: "Scale"
+  bottom: "OctConvX5"
+  top: "OctConvX5"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLUX5"
+  type: "ReLU"
+  bottom: "OctConvX5"
+  top: "OctConvX5"
+}
+layer {
+  name: "OctPoolX2"
+  type: "OctreePooling"
+  bottom: "OctConvX5"
+  top: "OctPoolX2"
+  octree_param {
+    curr_depth: 6
+  }
+}
+layer {
+  name: "OctLData2"
+  type: "OctreeProperty"
+  top: "OctLData2"
+  octree_param {
+    curr_depth: 5
+    content_flag: 'feature'
+    signal_channel: 10
+  }
+}
+layer {
+  name: "OctConvX2"
+  type: "OctreeConv"
+  bottom: "OctLData2"
+  top: "OctConvX2"
+  convolution_param {
+    num_output: 8
+    bias_term: false
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+  }
+  octree_param {
+    curr_depth: 5
+  }
+}
+layer {
+  name: "BNX2"
+  type: "BatchNorm"
+  bottom: "OctConvX2"
+  top: "OctConvX2"
+}
+layer {
+  name: "ScaleX2"
+  type: "Scale"
+  bottom: "OctConvX2"
+  top: "OctConvX2"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLUX2"
+  type: "ReLU"
+  bottom: "OctConvX2"
+  top: "OctConvX2"
+}
+layer {
+  name: "EltwiseX2"
+  type: "Eltwise"
+  bottom: "OctConvX2"
+  bottom: "OctPoolX2"
+  top: "EltwiseX2"
+  eltwise_param {
+    operation: MAX
+  }
+}
+layer {
+  name: "OctConvX6"
+  type: "OctreeConv"
+  bottom: "EltwiseX2"
+  top: "OctConvX6"
+  convolution_param {
+    num_output: 16
+    bias_term: false
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+  }
+  octree_param {
+    curr_depth: 5
+  }
+}
+layer {
+  name: "BNX6"
+  type: "BatchNorm"
+  bottom: "OctConvX6"
+  top: "OctConvX6"
+}
+layer {
+  name: "ScaleX6"
+  type: "Scale"
+  bottom: "OctConvX6"
+  top: "OctConvX6"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLUX6"
+  type: "ReLU"
+  bottom: "OctConvX6"
+  top: "OctConvX6"
+}
+layer {
+  name: "OctPoolX3"
+  type: "OctreePooling"
+  bottom: "OctConvX6"
+  top: "OctPoolX3"
+  octree_param {
+    curr_depth: 5
+  }
+}
+layer {
+  name: "OctLData1"
+  type: "OctreeProperty"
+  top: "OctLData1"
+  octree_param {
+    curr_depth: 4
+    content_flag: 'feature'
+    signal_channel: 10
+  }
+}
+layer {
+  name: "OctConvX1"
+  type: "OctreeConv"
+  bottom: "OctLData1"
+  top: "OctConvX1"
+  convolution_param {
+    num_output: 16
+    bias_term: false
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+  }
+  octree_param {
+    curr_depth: 4
+  }
+}
+layer {
+  name: "BNX1"
+  type: "BatchNorm"
+  bottom: "OctConvX1"
+  top: "OctConvX1"
+}
+layer {
+  name: "ScaleX1"
+  type: "Scale"
+  bottom: "OctConvX1"
+  top: "OctConvX1"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLUX1"
+  type: "ReLU"
+  bottom: "OctConvX1"
+  top: "OctConvX1"
+}
+layer {
+  name: "EltwiseX3"
+  type: "Eltwise"
+  bottom: "OctConvX1"
+  bottom: "OctPoolX3"
+  top: "EltwiseX3"
+  eltwise_param {
+    operation: MAX
+  }
+}
+
+
+
+
+layer {
+  name: "OctConv3"
+  type: "OctreeConv"
+  bottom: "EltwiseX3"
+  top: "OctConv3"
+  convolution_param {
+    num_output: 32
+    bias_term: false
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+  }
+  octree_param {
+    curr_depth: 4
+  }
+}
+layer {
+  name: "BN3"
+  type: "BatchNorm"
+  bottom: "OctConv3"
+  top: "OctConv3"
+}
+layer {
+  name: "Scale3"
+  type: "Scale"
+  bottom: "OctConv3"
+  top: "OctConv3"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLU3"
+  type: "ReLU"
+  bottom: "OctConv3"
+  top: "OctConv3"
+}
+layer {
+  name: "OctPool2"
+  type: "OctreePooling"
+  bottom: "OctConv3"
+  top: "OctPool2"
+  octree_param {
+    curr_depth: 4
+  }
+}
+layer {
+  name: "OctConv4"
+  type: "OctreeConv"
+  bottom: "OctPool2"
+  top: "OctConv4"
+  convolution_param {
+    num_output: 64
+    bias_term: false
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+  }
+  octree_param {
+    curr_depth: 3
+  }
+}
+layer {
+  name: "BN4"
+  type: "BatchNorm"
+  bottom: "OctConv4"
+  top: "OctConv4"
+}
+layer {
+  name: "Scale4"
+  type: "Scale"
+  bottom: "OctConv4"
+  top: "OctConv4"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLU4"
+  type: "ReLU"
+  bottom: "OctConv4"
+  top: "OctConv4"
+}
+layer {
+  name: "OctPool3"
+  type: "OctreePooling"
+  bottom: "OctConv4"
+  top: "OctPool3"
+  octree_param {
+    curr_depth: 3
+  }
+}
+layer {
+  name: "Oct2Vox1"
+  type: "Octree2FullVoxel"
+  bottom: "OctPool3"
+  top: "Oct2Vox1"
+  octree_param {
+    curr_depth: 2
+    batch_size: 32
+  }
+}
+layer {
+  name: "Drop1"
+  type: "Dropout"
+  bottom: "Oct2Vox1"
+  top: "Oct2Vox1"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "FC1"
+  type: "InnerProduct"
+  bottom: "Oct2Vox1"
+  top: "FC1"
+  param {
+    lr_mult: 1
+  }
+  inner_product_param {
+    num_output: 128
+    bias_term: false
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "BN5"
+  type: "BatchNorm"
+  bottom: "FC1"
+  top: "FC1"
+}
+layer {
+  name: "Scale5"
+  type: "Scale"
+  bottom: "FC1"
+  top: "FC1"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "ReLU5"
+  type: "ReLU"
+  bottom: "FC1"
+  top: "FC1"
+}
+layer {
+  name: "Drop2"
+  type: "Dropout"
+  bottom: "FC1"
+  top: "FC1"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+}
+layer {
+  name: "FC2"
+  type: "InnerProduct"
+  bottom: "FC1"
+  top: "FC2"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 40
+    bias_term: true
+    weight_filler {
+      type: "xavier"
+    }
+  }
+}
+layer {
+  name: "Loss2"
+  type: "SoftmaxWithLoss"
+  bottom: "FC2"
+  bottom: "label"
+  top: "Loss2"
+}
+layer {
+  name: "Accur1"
+  type: "Accuracy"
+  bottom: "FC2"
+  bottom: "label"
+  top: "Accur1"
+}
+
