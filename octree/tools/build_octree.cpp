@@ -33,6 +33,7 @@ DEFINE_bool(key2xyz, kOptional, false, "Convert the key to xyz when serializatio
 DEFINE_bool(extrapolate, kOptional, false, "Exptrpolate the node feature");
 DEFINE_bool(save_pts, kOptional, false, "Save the average points as signal");
 DEFINE_bool(verbose, kOptional, true, "Output logs");
+DEFINE_bool(skip_rotations, kOptional, false, "skip rotations for autoencoder case");
 
 
 // OctreeBuilder shows a basic example for building an octree with a point cloud
@@ -150,7 +151,7 @@ int main(int argc, char* argv[]) {
     for (int v = 0; v < FLAGS_rot_num; ++v) {
 
       // auto encoder only requires rotation 0, 1, 11
-      if (v == 0 || v == 1 || v == 11) {
+      if (!FLAGS_skip_rotations || v == 0 || v == 1 || v == 11) {
         // output filename
         char file_suffix[64];
         sprintf(file_suffix, "_%d_%d_%03d.octree", FLAGS_depth, FLAGS_full_depth, v);
