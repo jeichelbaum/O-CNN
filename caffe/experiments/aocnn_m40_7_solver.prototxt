@@ -1,5 +1,5 @@
 # The train/test net protocol buffer definition
-net: "aocnn_m40_5.prototxt"
+net: "aocnn_m40_7.prototxt"
 
 # run the forward pass for all test data to get the test loss
 test_iter: 925
@@ -24,7 +24,7 @@ max_iter: 160000  # about 40 epochs
 
 # snapshot intermediate results
 snapshot: 2000
-snapshot_prefix: "/home/jeri/dev/data/ModelNet40/3_exp_baseline_slim2_d5/model/aocnn.train"
+snapshot_prefix: "/home/jeri/dev/data/ModelNet40/3_exp_baseline_slim2_d7/model/aocnn.train"
 
 # solver mode: CPU or GPU
 solver_mode: GPU
