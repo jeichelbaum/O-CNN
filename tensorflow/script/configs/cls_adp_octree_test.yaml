@@ -3,7 +3,7 @@
 SOLVER:
   gpu: 0,
   logdir: /home/jeri/dev/data/ModelNet40/3_exp_baseline_planar_d5/model
-  ckpt: /home/jeri/dev/data/ModelNet40/3_exp_baseline_planar_d5/TODO
+  ckpt: /home/jeri/dev/data/ModelNet40/3_exp_baseline_planar_d5/logdir/iter_004000.ckpt.index
   run: test
   test_iter: 925
 
