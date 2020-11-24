@@ -1,0 +1,27 @@
+# To test the model with the tensorflow checkpoint
+
+SOLVER:
+  gpu: 0,
+  logdir: /home/jeri/dev/data/ModelNet40/3_exp_baseline_planar_d5/model
+  ckpt: /home/jeri/dev/data/ModelNet40/3_exp_baseline_planar_d5/logdir/iter_004000.ckpt.index
+  run: test
+  test_iter: 925
+
+DATA:
+  test: 
+    dtype: octree
+    depth: 5
+    location: /home/jeri/dev/data/ModelNet40/3_exp_baseline_planar_d5/oct_test.tfrecords
+    shuffle: 0
+    batch_size: 32
+    x_alias: data
+
+MODEL:
+  name: ocnn
+  channel: 4
+  nout: 40
+  depth: 5
+
+LOSS:
+  num_class: 40
+  weight_decay: 0.0005
