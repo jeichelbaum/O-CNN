@@ -56,8 +56,12 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < all_files.size(); i++) {
 
     Octree octree;
-    octree.read_octree(all_files[i]);
-    
+    bool loaded = octree.read_octree(all_files[i]);
+    if (!loaded) {
+      printf("couldnt load %s /n", all_files[i].c_str());
+      continue;
+    }
+
     int depth = octree.info().depth();
     Eigen::VectorXf count = Eigen::VectorXf::Zero(depth+1);
 

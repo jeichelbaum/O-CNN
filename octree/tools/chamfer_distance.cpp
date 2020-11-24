@@ -184,8 +184,12 @@ int main(int argc, char* argv[]) {
 
     bool loaded_a = point_cloud_a.read_points(filename_a);
     bool loaded_b = point_cloud_b.read_points(filename_b);
-    if (!loaded_a || !loaded_b) {
+    if (!loaded_a || !loaded_b ) {
       printf("\t\tpts empty -> skipping %d\n", i);
+      continue;
+    }
+    if (point_cloud_a.info().pt_num() > 1000000 || point_cloud_b.info().pt_num() > 1000000) {
+      printf("\t\ttoo many points -> skipping %d\n", i);
       continue;
     }
 

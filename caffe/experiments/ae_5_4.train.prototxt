@@ -7,13 +7,13 @@ layer {
     phase: TRAIN
   }
   data_param {
-	source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_slim2_d5/oct_train_aug_lmdb/"
+	source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_quad3_d5/oct_train_aug_lmdb/"
     batch_size: 32
     backend: LMDB
   }
   octree_param {
     curr_depth: 5
-    signal_channel: 12
+    signal_channel: 10
   }
 }
 layer {
@@ -24,13 +24,13 @@ layer {
     phase: TEST
   }
   data_param {
-	source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_slim2_d5/oct_test_lmdb/"
+	source: "/home/jeri/dev/data/ShapeNetCore.v1/3_exp_baseline_quad3_d5/oct_test_lmdb/"
     batch_size: 32
     backend: LMDB
   }
   octree_param {
     curr_depth: 5
-    signal_channel: 12
+    signal_channel: 10
   }
 }
 layer {
@@ -88,7 +88,7 @@ layer {
   octree_param {
     curr_depth: 4
     content_flag: 'feature'
-    signal_channel: 12
+    signal_channel: 10
   }
 }
 layer {
@@ -880,7 +880,7 @@ layer {
   bottom: "Conv7"
   top: "Conv9"
   convolution_param {
-    num_output: 12
+    num_output: 10
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -914,9 +914,18 @@ layer {
 }
 layer {
   name: "Normalize1"
-  type: "Normalize"
+  type: "TanH"
   bottom: "Slice1"
   top: "Normalize1"
+}
+layer {
+  name: "Scaled_1_1"
+  type: "Scale"
+  bottom: "Normalize1"
+  top: "Scaled_1_1"
+  scale_param {
+    bias_term: true
+  }
 }
 layer {
   name: "Slice3"
@@ -933,7 +942,7 @@ layer {
 layer {
   name: "Loss4"
   type: "EuclideanLoss"
-  bottom: "Normalize1"
+  bottom: "Scaled_1_1"
   bottom: "Slice3"
   top: "Loss4"
   loss_weight: 1.0
@@ -950,9 +959,18 @@ layer {
   top: "TanH2"
 }
 layer {
+  name: "Scaled_2_1"
+  type: "Scale"
+  bottom: "TanH2"
+  top: "Scaled_2_1"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
   name: "Loss5"
   type: "EuclideanLoss"
-  bottom: "TanH2"
+  bottom: "Scaled_2_1"
   bottom: "Slice4"
   top: "Loss5"
   loss_weight: 1
@@ -1124,7 +1142,7 @@ layer {
   bottom: "Conv10"
   top: "Conv12"
   convolution_param {
-    num_output: 12
+    num_output: 10
     bias_term: true
     kernel_size: 1
     stride: 1
@@ -1158,9 +1176,18 @@ layer {
 }
 layer {
   name: "Normalize2"
-  type: "Normalize"
+  type: "TanH"
   bottom: "Slice5"
   top: "Normalize2"
+}
+layer {
+  name: "Scaled_1_2"
+  type: "Scale"
+  bottom: "Normalize2"
+  top: "Scaled_1_2"
+  scale_param {
+    bias_term: true
+  }
 }
 layer {
   name: "Slice7"
@@ -1177,7 +1204,7 @@ layer {
 layer {
   name: "Loss7"
   type: "EuclideanLoss"
-  bottom: "Normalize2"
+  bottom: "Scaled_1_2"
   bottom: "Slice7"
   top: "Loss7"
   loss_weight: 1.0
@@ -1194,9 +1221,18 @@ layer {
   top: "TanH3"
 }
 layer {
+  name: "Scaled_2_2"
+  type: "Scale"
+  bottom: "TanH3"
+  top: "Scaled_2_2"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
   name: "Loss8"
   type: "EuclideanLoss"
-  bottom: "TanH3"
+  bottom: "Scaled_2_2"
   bottom: "Slice8"
   top: "Loss8"
   loss_weight: 1
