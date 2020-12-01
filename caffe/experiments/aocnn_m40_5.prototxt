@@ -338,3 +338,17 @@ layer {
   top: "Accur1"
 }
 
+layer
+{
+  name: "cSoftMax"
+  type: "Softmax"
+  bottom: "FC2"
+  top: "prob"
+}
+
+layer {
+  name: "output"
+  type: "ArgMax"
+  bottom: "prob"
+  top: "output"
+}
