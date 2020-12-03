@@ -559,17 +559,17 @@ layer {
 }
 
 
-layer {
-  name: "Loss2"
-  type: "SoftmaxWithLoss"
+layer
+{
+  name: "cSoftMax"
+  type: "Softmax"
   bottom: "FC2"
-  bottom: "label"
-  top: "Loss2"
+  top: "prob"
 }
+
 layer {
-  name: "Accur1"
-  type: "Accuracy"
-  bottom: "FC2"
-  bottom: "label"
-  top: "Accur1"
+  name: "output"
+  type: "ArgMax"
+  bottom: "prob"
+  top: "output"
 }

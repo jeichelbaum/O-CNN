@@ -60,6 +60,9 @@ class OctreeBuilder {
       return false;
     }
 
+
+    cout << "num points: " << point_cloud_.info().pt_num() << endl;
+
     // bounding sphere
     bounding_sphere(radius_, center_, point_cloud_.points(), npt);
     //radius_ = 128.0;
