@@ -26,7 +26,7 @@ DEFINE_bool(node_dis, kOptional, false, "Output per-node displacement");
 DEFINE_bool(node_feature, kOptional, false, "Compute per node feature");
 DEFINE_bool(split_label, kOptional, false, "Compute per node splitting label");
 DEFINE_bool(adaptive, kOptional, false, "Build adaptive octree");
-DEFINE_int(adp_depth, kOptional, 3, "The starting depth of adaptive octree");
+DEFINE_int(adp_depth, kOptional, 4, "The starting depth of adaptive octree");
 DEFINE_float(th_distance, kOptional, 2.0f, "The threshold for simplifying octree");
 DEFINE_float(th_normal, kOptional, 0.1f, "The threshold for simplifying octree");
 DEFINE_bool(key2xyz, kOptional, false, "Convert the key to xyz when serialization");
@@ -60,6 +60,9 @@ class OctreeBuilder {
       cout << "This is an empty points!" << endl;
       return false;
     }
+
+
+    cout << "num points: " << point_cloud_.info().pt_num() << endl;
 
     // bounding sphere
     bounding_sphere(radius_, center_, point_cloud_.points(), npt);
