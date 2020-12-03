@@ -156,9 +156,9 @@ file_oct_train_aug.close()
 print('Generate octree lmdb ...')
 # generate lmdb for octree
 # print(
-subprocess.check_call(
-  [convert_octree, root_pc+'/', filename_oct_train, root_lmdb+'/oct_train_lmdb']
-)
+#subprocess.check_call(
+#  [convert_octree, root_pc+'/', filename_oct_train, root_lmdb+'/oct_train_lmdb']
+#)
 # print(
 subprocess.check_call(
   [convert_octree, root_pc+'/', filename_oct_train_aug, root_lmdb+'/oct_train_aug_lmdb']
