@@ -954,18 +954,9 @@ layer {
 }, 
 layer {
   name: "Normalize1"
-  type: "TanH"
+  type: "Normalize"
   bottom: "Slice1"
   top: "Normalize1"
-}
-layer {
-  name: "Scaled_1_1"
-  type: "Scale"
-  bottom: "Normalize1"
-  top: "Scaled_1_1"
-  scale_param {
-    bias_term: true
-  }
 }
 layer {
   name: "TanH2"
@@ -974,19 +965,10 @@ layer {
   top: "TanH2"
 }
 layer {
-  name: "Scaled_2_1"
-  type: "Scale"
-  bottom: "TanH2"
-  top: "Scaled_2_1"
-  scale_param {
-    bias_term: true
-  }
-}
-layer {
   name: "Concat1"
   type: "Concat"
-  bottom: "Scaled_1_1"
-  bottom: "Scaled_2_1"
+  bottom: "Normalize1"
+  bottom: "TanH2"
   top: "Concat1"
   concat_param {
     axis: 1
@@ -1189,18 +1171,9 @@ layer {
 }, 
 layer {
   name: "Normalize2"
-  type: "TanH"
+  type: "Normalize"
   bottom: "Slice3"
   top: "Normalize2"
-}
-layer {
-  name: "Scaled_1_2"
-  type: "Scale"
-  bottom: "Normalize2"
-  top: "Scaled_1_2"
-  scale_param {
-    bias_term: true
-  }
 }
 layer {
   name: "TanH3"
@@ -1209,19 +1182,10 @@ layer {
   top: "TanH3"
 }
 layer {
-  name: "Scaled_2_2"
-  type: "Scale"
-  bottom: "TanH3"
-  top: "Scaled_2_2"
-  scale_param {
-    bias_term: true
-  }
-}
-layer {
   name: "Concat2"
   type: "Concat"
-  bottom: "Scaled_1_2"
-  bottom: "Scaled_2_2"
+  bottom: "Normalize2"
+  bottom: "TanH3"
   top: "Concat2"
   concat_param {
     axis: 1

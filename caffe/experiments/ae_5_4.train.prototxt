@@ -914,18 +914,9 @@ layer {
 }
 layer {
   name: "Normalize1"
-  type: "TanH"
+  type: "Normalize"
   bottom: "Slice1"
   top: "Normalize1"
-}
-layer {
-  name: "Scaled_1_1"
-  type: "Scale"
-  bottom: "Normalize1"
-  top: "Scaled_1_1"
-  scale_param {
-    bias_term: true
-  }
 }
 layer {
   name: "Slice3"
@@ -942,7 +933,7 @@ layer {
 layer {
   name: "Loss4"
   type: "EuclideanLoss"
-  bottom: "Scaled_1_1"
+  bottom: "Normalize1"
   bottom: "Slice3"
   top: "Loss4"
   loss_weight: 1.0
@@ -959,18 +950,9 @@ layer {
   top: "TanH2"
 }
 layer {
-  name: "Scaled_2_1"
-  type: "Scale"
-  bottom: "TanH2"
-  top: "Scaled_2_1"
-  scale_param {
-    bias_term: true
-  }
-}
-layer {
   name: "Loss5"
   type: "EuclideanLoss"
-  bottom: "Scaled_2_1"
+  bottom: "TanH2"
   bottom: "Slice4"
   top: "Loss5"
   loss_weight: 1
@@ -1176,18 +1158,9 @@ layer {
 }
 layer {
   name: "Normalize2"
-  type: "TanH"
+  type: "Normalize"
   bottom: "Slice5"
   top: "Normalize2"
-}
-layer {
-  name: "Scaled_1_2"
-  type: "Scale"
-  bottom: "Normalize2"
-  top: "Scaled_1_2"
-  scale_param {
-    bias_term: true
-  }
 }
 layer {
   name: "Slice7"
@@ -1204,7 +1177,7 @@ layer {
 layer {
   name: "Loss7"
   type: "EuclideanLoss"
-  bottom: "Scaled_1_2"
+  bottom: "Normalize2"
   bottom: "Slice7"
   top: "Loss7"
   loss_weight: 1.0
@@ -1221,18 +1194,9 @@ layer {
   top: "TanH3"
 }
 layer {
-  name: "Scaled_2_2"
-  type: "Scale"
-  bottom: "TanH3"
-  top: "Scaled_2_2"
-  scale_param {
-    bias_term: true
-  }
-}
-layer {
   name: "Loss8"
   type: "EuclideanLoss"
-  bottom: "Scaled_2_2"
+  bottom: "TanH3"
   bottom: "Slice8"
   top: "Loss8"
   loss_weight: 1
