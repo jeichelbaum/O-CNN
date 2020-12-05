@@ -1150,7 +1150,7 @@ layer {
   bottom: "Normalize1"
   bottom: "Slice3"
   top: "Loss4"
-  loss_weight: 1.0
+  loss_weight: 0.2
   propagate_down: true
   propagate_down: false
   loss_param {
@@ -1394,7 +1394,7 @@ layer {
   bottom: "Normalize2"
   bottom: "Slice7"
   top: "Loss7"
-  loss_weight: 1.0
+  loss_weight: 0.2
   propagate_down: true
   propagate_down: false
   loss_param {
@@ -1638,7 +1638,7 @@ layer {
   bottom: "Normalize3"
   bottom: "Slice11"
   top: "Loss10"
-  loss_weight: 1.0
+  loss_weight: 0.2
   propagate_down: true
   propagate_down: false
   loss_param {
@@ -1882,7 +1882,7 @@ layer {
   bottom: "Normalize4"
   bottom: "Slice15"
   top: "Loss13"
-  loss_weight: 1.0
+  loss_weight: 0.2
   propagate_down: true
   propagate_down: false
   loss_param {
