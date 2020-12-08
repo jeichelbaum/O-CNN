@@ -14,7 +14,7 @@ layer {
   }
   octree_param {
     curr_depth: 7
-    signal_channel: 3
+    signal_channel: 10
   }
 }
 layer {
@@ -32,7 +32,7 @@ layer {
   }
   octree_param {
     curr_depth: 7
-    signal_channel: 3
+    signal_channel: 10
   }
 }
 
@@ -93,7 +93,7 @@ layer {
   octree_param {
     curr_depth: 6
     content_flag: 'feature'
-    signal_channel: 3
+    signal_channel: 10
   }
 }
 layer {
@@ -200,7 +200,7 @@ layer {
   octree_param {
     curr_depth: 5
     content_flag: 'feature'
-    signal_channel: 3
+    signal_channel: 10
   }
 }
 layer {
@@ -307,7 +307,7 @@ layer {
   octree_param {
     curr_depth: 4
     content_flag: 'feature'
-    signal_channel: 3
+    signal_channel: 10
   }
 }
 layer {
