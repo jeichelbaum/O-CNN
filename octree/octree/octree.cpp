@@ -1154,13 +1154,13 @@ void Octree::octree2pts(Points& point_cloud, int depth_start, int depth_end,
     for (int i = 0; i < num; ++i) {
       if (node_type(child_d[i]) == kInternelNode && d != depth) continue;
 
-      node_coefficients(coef, i, d);
+      node_slim_coefficients(coef, i, d);
       float len = 0;
       for (int c = 0; c < 10; c++) { len += fabs(coef[c]); }
       if (len == 0) continue;    
 
       float max_coef = 0;
-      for (int c = 4; c < 10; c++) {
+      for (int c = 0; c < 6; c++) {
         max_coef = max(max_coef, fabs(coef[c]));
       }
       max_curvature[d] += max_coef;
