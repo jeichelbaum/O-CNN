@@ -1136,6 +1136,40 @@ void Octree::octree2pts(Points& point_cloud, int depth_start, int depth_end,
 }*/
 
 
+  void Octree::avg_max_curvature(vector<float>& max_curvature) const {
+  const int depth = info_->depth();
+  int depth_start = 3;
+  int depth_end = depth+2;
+  valid_depth_range(depth_start, depth_end);
+  float coef[10];
+
+
+  max_curvature.resize(depth_end+1);
+  for (int d = depth_start; d <= depth_end; ++d) {
+    max_curvature[d] = 0;
+
+    const int* child_d = children_cpu(d);
+    const int num = info_->node_num(d);
+
+    for (int i = 0; i < num; ++i) {
+      if (node_type(child_d[i]) == kInternelNode && d != depth) continue;
+
+      node_coefficients(coef, i, d);
+      float len = 0;
+      for (int c = 0; c < 10; c++) { len += fabs(coef[c]); }
+      if (len == 0) continue;    
+
+      float max_coef = 0;
+      for (int c = 4; c < 10; c++) {
+        max_coef = max(max_coef, fabs(coef[c]));
+      }
+      max_curvature[d] += max_coef;
+    }
+
+    max_curvature[d] /= num;
+  }
+}
+
 void Octree::octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
     int depth_end, bool rescale) const {
   const int depth = info_->depth();
