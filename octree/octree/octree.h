@@ -46,6 +46,8 @@ class Octree : public OctreeParser {
   void octree2mesh(vector<float>& V, vector<int>& F, int depth_start,
       int depth_end, bool rescale = true) const;
 
+  void avg_max_curvature(vector<float>& stats) const;
+
  protected:
   void clear(int depth = 0);
   void normalize_pts(vector<float>& pts_scaled, const Points& pts);
