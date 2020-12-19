@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
     
     // write curvature to string stream
     int t = omp_get_thread_num();
-    octree_stats[t] << all_files[i].c_str() << " ";
+    octree_stats[t] << all_files[i].c_str() << " ";''
     for (int c = 0; c < stats.size(); c++) {
         octree_stats[t] << stats[c] << " ";
     }
